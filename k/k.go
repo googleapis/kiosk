@@ -24,6 +24,7 @@ import (
 	"crypto/tls"
 
 	"github.com/docopt/docopt-go"
+	"github.com/golang/protobuf/ptypes/empty"
 	pb "github.com/googleapis/kiosk/generated"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -85,22 +86,27 @@ func main() {
 
 	if arguments["create"].(bool) && arguments["kiosk"].(bool) {
 		kiosk := &pb.Kiosk{
-			DeviceName: arguments["<name>"].(string),
+			Name: arguments["<name>"].(string),
 		}
-		fmt.Printf("creating %+v\n", kiosk)
-
 		newkiosk, err := c.CreateKiosk(ctx, kiosk)
 		fmt.Printf("created %+v (err %+v)\n", newkiosk, err)
 	}
 
 	if arguments["list"].(bool) && arguments["kiosks"].(bool) {
-		kiosk := &pb.Kiosk{
-			DeviceName: arguments["<name>"].(string),
-		}
-		fmt.Printf("creating %+v\n", kiosk)
+		response, err := c.ListKiosks(ctx, &empty.Empty{})
+		fmt.Printf("listing %+v (err %+v)\n", response, err)
+	}
 
-		newkiosk, err := c.CreateKiosk(ctx, kiosk)
-		fmt.Printf("created %+v (err %+v)\n", newkiosk, err)
+	if arguments["get"].(bool) && arguments["kiosk"].(bool) {
+		id, _ := arguments.Int("<id>")
+
+		kiosk, err := c.GetKiosk(ctx, &pb.GetKioskRequest{Id: int32(id)})
+		fmt.Printf("created %+v (err %+v)\n", kiosk, err)
+	}
+
+	if arguments["delete"].(bool) && arguments["kiosk"].(bool) {
+		kiosk, err := c.DeleteKiosk(ctx, &pb.DeleteKioskRequest{Id: arguments["<id>"].(int32)})
+		fmt.Printf("created %+v (err %+v)\n", kiosk, err)
 	}
 
 	//	func (c *displayClient) SetSignForKiosks(ctx context.Context, in *SetSignRequest, opts ...grpc.CallOption) (*google_protobuf.Empty, error) {

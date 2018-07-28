@@ -1,4 +1,4 @@
-// Copyright 2016 Google Inc. All Rights Reserved.
+// Copyright 2018 Google Inc. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,64 +21,81 @@ import (
 )
 
 type DisplayServer struct {
-	kiosks map[string]*pb.Kiosk
-	signs map[string]*pb.Sign
+	kiosks         []*pb.Kiosk
+	signs          []*pb.Sign
 	signsForKiosks map[string]string
-	nextKioskId int
-	nextSignId int
+	nextKioskId    int32
+	nextSignId     int32
 }
 
 func NewDisplayServer() *DisplayServer {
- 	return &DisplayServer{
-		kiosks: make(map[string]*pb.Kiosk),
-		signs: make(map[string]*pb.Sign),
+	return &DisplayServer{
+		kiosks:         make([]*pb.Kiosk, 1000, 1000),
+		signs:          make([]*pb.Sign, 1000, 1000),
 		signsForKiosks: make(map[string]string),
-		nextKioskId: 1,
-		nextSignId: 1,
+		nextKioskId:    1,
+		nextSignId:     1,
 	}
 }
 
 // Create a kiosk. This enrolls the kiosk for sign display.
-func (k *DisplayServer) CreateKiosk(c context.Context, kiosk *pb.Kiosk) (*pb.Kiosk, error) {
+func (s *DisplayServer) CreateKiosk(c context.Context, kiosk *pb.Kiosk) (*pb.Kiosk, error) {
+	kiosk.Id = s.nextKioskId
+	s.kiosks[kiosk.Id] = kiosk
+	s.nextKioskId++
 	return kiosk, nil
 }
 
 // List active kiosks.
-func (k *DisplayServer) ListKiosks(c context.Context, x *google_protobuf.Empty) (*pb.ListKiosksResponse, error) {
-	return nil, nil
+func (s *DisplayServer) ListKiosks(c context.Context, x *google_protobuf.Empty) (*pb.ListKiosksResponse, error) {
+	response := &pb.ListKiosksResponse{}
+	for _, k := range s.kiosks {
+		if k != nil {
+			response.Kiosks = append(response.Kiosks, k)
+		}
+	}
+	return response, nil
 }
 
 // Get a kiosk.
-func (k *DisplayServer) GetKiosk(c context.Context, r *pb.GetKioskRequest) (*pb.Kiosk, error) { return nil, nil }
+func (s *DisplayServer) GetKiosk(c context.Context, r *pb.GetKioskRequest) (*pb.Kiosk, error) {
+	return nil, nil
+}
 
 // Delete a kiosk.
-func (k *DisplayServer) DeleteKiosk(c context.Context, r *pb.DeleteKioskRequest) (*google_protobuf.Empty, error) { return nil, nil }
+func (s *DisplayServer) DeleteKiosk(c context.Context, r *pb.DeleteKioskRequest) (*google_protobuf.Empty, error) {
+	return nil, nil
+}
 
 // Create a sign. This enrolls the sign for sign display.
-func (k *DisplayServer) CreateSign(context.Context, *pb.Sign) (*pb.Sign, error) { return nil, nil }
+func (s *DisplayServer) CreateSign(context.Context, *pb.Sign) (*pb.Sign, error) { return nil, nil }
 
 // List active signs.
-func (k *DisplayServer) ListSigns(context.Context, *google_protobuf.Empty) (*pb.ListSignsResponse, error) {
+func (s *DisplayServer) ListSigns(context.Context, *google_protobuf.Empty) (*pb.ListSignsResponse, error) {
 	return nil, nil
 }
 
 // Get a sign.
-func (k *DisplayServer) GetSign(context.Context, *pb.GetSignRequest) (*pb.Sign, error) { return nil, nil }
+func (s *DisplayServer) GetSign(context.Context, *pb.GetSignRequest) (*pb.Sign, error) {
+	return nil, nil
+}
 
 // Delete a sign.
-func (k *DisplayServer) DeleteSign(context.Context, *pb.DeleteSignRequest) (*google_protobuf.Empty, error) {
+func (s *DisplayServer) DeleteSign(context.Context, *pb.DeleteSignRequest) (*google_protobuf.Empty, error) {
 	return nil, nil
 }
 
 // Set a sign for display on one or more kiosks.
-func (k *DisplayServer) SetSignForKiosks(context.Context, *pb.SetSignForKiosksRequest) (*google_protobuf.Empty, error) {
+func (s *DisplayServer) SetSignForKiosks(context.Context, *pb.SetSignForKiosksRequest) (*google_protobuf.Empty, error) {
 	return nil, nil
 }
 
 // Get the sign that should be displayed on a kiosk.
-func (k *DisplayServer) GetSignForKiosk(context.Context, *pb.GetSignForKioskRequest) (*pb.Sign, error) { return nil, nil }
+func (s *DisplayServer) GetSignForKiosk(context.Context, *pb.GetSignForKioskRequest) (*pb.Sign, error) {
+	return nil, nil
+}
 
 // Get signs that should be displayed on a kiosk. Streams.
-func (k *DisplayServer) GetSignsForKiosk(*pb.GetSignForKioskRequest, pb.Display_GetSignsForKioskServer) error {
+func (s *DisplayServer) GetSignsForKiosk(*pb.GetSignForKioskRequest, pb.Display_GetSignsForKioskServer) error {
 	return nil
 }

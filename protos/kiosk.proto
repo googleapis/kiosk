@@ -58,26 +58,27 @@ service Display {
 
 // Describes a hardware device that can display signs.
 message Kiosk {
-  string id = 1;              // unique id
-  string device_name = 2;     // name of device hardware
-  ScreenSize size = 3;        // screen size
-  google.type.LatLng location = 4;        // kiosk location
+  int32 id = 1;               		// unique id
+  string name = 2;			// name of device hardware
+  ScreenSize size = 3;			// screen size
+  google.type.LatLng location = 4;	// kiosk location
   google.protobuf.Timestamp create_time = 5;
 }
 
 // Describes a digital sign.
 // Signs can include text, images, or both.
 message Sign {
-  string id = 1;     			// unique id
-  string text = 2;   			// text to display
-  bytes image = 3;   			// image to display
-  google.protobuf.Timestamp create_time = 4;
+  int32 id = 1;     			// unique id
+  string name = 2;			// name of sign
+  string text = 3;   			// text to display
+  bytes image = 4;   			// image to display
+  google.protobuf.Timestamp create_time = 5;
 }
 
 // Represents the size of a screen in pixels.
 message ScreenSize {
-  int32 width = 1;              // screen width
-  int32 height = 2;             // screen height
+  int32 width = 1;			// screen width
+  int32 height = 2;			// screen height
 }
 
 
@@ -86,11 +87,11 @@ message ListKiosksResponse {
 }
 
 message GetKioskRequest {
-  string id = 1;
+  int32 id = 1;
 }
 
 message DeleteKioskRequest {
-  string id = 1;
+  int32 id = 1;
 }
 
 message ListSignsResponse {
@@ -98,19 +99,19 @@ message ListSignsResponse {
 }
 
 message GetSignRequest {
-  string id = 1;
+  int32 id = 1;
 }
 
 message DeleteSignRequest {
-  string id = 1;
+  int32 id = 1;
 }
 
 message SetSignForKiosksRequest {
-  repeated string kiosk_id = 1;
-  string sign_id = 2;
+  repeated int32 kiosk_id = 1;
+  int32 sign_id = 2;
 }
 
 message GetSignForKioskRequest {
-  string id = 1;
+  int32 id = 1;
 }
 
