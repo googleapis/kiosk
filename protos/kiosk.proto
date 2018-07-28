@@ -47,13 +47,13 @@ service Display {
   rpc DeleteSign(DeleteSignRequest) returns (google.protobuf.Empty) {}
 
   // Set a sign for display on one or more kiosks.
-  rpc SetSignForKiosks(SetSignForKiosksRequest) returns (google.protobuf.Empty) {}
+  rpc SetSignIdForKioskIds(SetSignIdForKioskIdsRequest) returns (google.protobuf.Empty) {}
 
   // Get the sign that should be displayed on a kiosk.
-  rpc GetSignForKiosk(GetSignForKioskRequest) returns (Sign) {}
+  rpc GetSignIdForKioskId(GetSignIdForKioskIdRequest) returns (GetSignIdResponse) {}
 
   // Get signs that should be displayed on a kiosk. Streams.
-  rpc GetSignsForKiosk(GetSignForKioskRequest) returns (stream Sign) {}
+  rpc GetSignIdsForKioskId(GetSignIdForKioskIdRequest) returns (stream GetSignIdResponse) {}
 }
 
 // Describes a hardware device that can display signs.
@@ -106,12 +106,16 @@ message DeleteSignRequest {
   int32 id = 1;
 }
 
-message SetSignForKiosksRequest {
-  repeated int32 kiosk_id = 1;
+message SetSignIdForKioskIdsRequest {
+  repeated int32 kiosk_ids = 1;
   int32 sign_id = 2;
 }
 
-message GetSignForKioskRequest {
-  int32 id = 1;
+message GetSignIdForKioskIdRequest {
+  int32 kiosk_id = 1;
+}
+
+message GetSignIdResponse {
+  int32 sign_id = 1;
 }
 

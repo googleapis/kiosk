@@ -23,20 +23,20 @@ import (
 )
 
 type DisplayServer struct {
-	kiosks         []*pb.Kiosk
-	signs          []*pb.Sign
-	signsForKiosks map[string]string
-	nextKioskId    int32
-	nextSignId     int32
+	kiosks             []*pb.Kiosk
+	signs              []*pb.Sign
+	signIdsForKioskIds []int32
+	nextKioskId        int32
+	nextSignId         int32
 }
 
 func NewDisplayServer() *DisplayServer {
 	return &DisplayServer{
-		kiosks:         make([]*pb.Kiosk, 1000, 1000),
-		signs:          make([]*pb.Sign, 1000, 1000),
-		signsForKiosks: make(map[string]string),
-		nextKioskId:    1,
-		nextSignId:     1,
+		kiosks:             make([]*pb.Kiosk, 1000, 1000),
+		signs:              make([]*pb.Sign, 1000, 1000),
+		signIdsForKioskIds: make([]int32, 1000, 1000),
+		nextKioskId:        1,
+		nextSignId:         1,
 	}
 }
 
@@ -81,34 +81,69 @@ func (s *DisplayServer) DeleteKiosk(c context.Context, r *pb.DeleteKioskRequest)
 }
 
 // Create a sign. This enrolls the sign for sign display.
-func (s *DisplayServer) CreateSign(context.Context, *pb.Sign) (*pb.Sign, error) { return nil, nil }
+func (s *DisplayServer) CreateSign(c context.Context, sign *pb.Sign) (*pb.Sign, error) {
+	sign.Id = s.nextSignId
+	s.signs[sign.Id] = sign
+	s.nextSignId++
+	return sign, nil
+}
 
 // List active signs.
-func (s *DisplayServer) ListSigns(context.Context, *google_protobuf.Empty) (*pb.ListSignsResponse, error) {
-	return nil, nil
+func (s *DisplayServer) ListSigns(c context.Context, x *google_protobuf.Empty) (*pb.ListSignsResponse, error) {
+	response := &pb.ListSignsResponse{}
+	for _, k := range s.signs {
+		if k != nil {
+			response.Signs = append(response.Signs, k)
+		}
+	}
+	return response, nil
 }
 
 // Get a sign.
-func (s *DisplayServer) GetSign(context.Context, *pb.GetSignRequest) (*pb.Sign, error) {
-	return nil, nil
+func (s *DisplayServer) GetSign(c context.Context, r *pb.GetSignRequest) (*pb.Sign, error) {
+	i := r.Id
+	if i >= 0 && i < int32(len(s.signs)) && s.signs[i] != nil {
+		return s.signs[i], nil
+	} else {
+		return nil, errors.New("invalid sign id")
+	}
 }
 
 // Delete a sign.
-func (s *DisplayServer) DeleteSign(context.Context, *pb.DeleteSignRequest) (*google_protobuf.Empty, error) {
-	return nil, nil
+func (s *DisplayServer) DeleteSign(c context.Context, r *pb.DeleteSignRequest) (*google_protobuf.Empty, error) {
+	i := r.Id
+	if i >= 0 && i < int32(len(s.signs)) && s.signs[i] != nil {
+		s.signs[i] = nil
+		return &google_protobuf.Empty{}, nil
+	} else {
+		return nil, errors.New("invalid sign id")
+	}
 }
 
 // Set a sign for display on one or more kiosks.
-func (s *DisplayServer) SetSignForKiosks(context.Context, *pb.SetSignForKiosksRequest) (*google_protobuf.Empty, error) {
-	return nil, nil
+func (s *DisplayServer) SetSignIdForKioskIds(c context.Context, r *pb.SetSignIdForKioskIdsRequest) (*google_protobuf.Empty, error) {
+	for _, kiosk_id := range r.KioskIds {
+		s.signIdsForKioskIds[kiosk_id] = r.SignId
+	}
+	if len(r.KioskIds) == 0 {
+		for kiosk_id, _ := range s.signIdsForKioskIds {
+			s.signIdsForKioskIds[kiosk_id] = r.SignId
+		}
+	}
+	return &google_protobuf.Empty{}, nil
 }
 
 // Get the sign that should be displayed on a kiosk.
-func (s *DisplayServer) GetSignForKiosk(context.Context, *pb.GetSignForKioskRequest) (*pb.Sign, error) {
-	return nil, nil
+func (s *DisplayServer) GetSignIdForKioskId(c context.Context, r *pb.GetSignIdForKioskIdRequest) (*pb.GetSignIdResponse, error) {
+	kiosk_id := r.KioskId
+	sign_id := s.signIdsForKioskIds[kiosk_id]
+	response := &pb.GetSignIdResponse{
+		SignId: sign_id,
+	}
+	return response, nil
 }
 
 // Get signs that should be displayed on a kiosk. Streams.
-func (s *DisplayServer) GetSignsForKiosk(*pb.GetSignForKioskRequest, pb.Display_GetSignsForKioskServer) error {
+func (s *DisplayServer) GetSignIdsForKioskId(*pb.GetSignIdForKioskIdRequest, pb.Display_GetSignIdsForKioskIdServer) error {
 	return nil
 }

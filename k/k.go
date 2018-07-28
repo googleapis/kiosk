@@ -111,8 +111,35 @@ func main() {
 	c := pb.NewDisplayClient(conn)
 
 	ctx := context.TODO()
+	if Match(args, "set sign <sign_id> for kiosk <kiosk_id>") {
+		sign_id, err := args.Int("<sign_id>")
+		kiosk_id, err := args.Int("<kiosk_id>")
+		response, err := c.SetSignIdForKioskIds(ctx, &pb.SetSignIdForKioskIdsRequest{
+			SignId:   int32(sign_id),
+			KioskIds: []int32{int32(kiosk_id)},
+		})
+		if Verify(err) {
+			fmt.Printf("%+v\n", response)
+		}
+	} else if Match(args, "set sign <sign_id> for all kiosks") {
+		sign_id, err := args.Int("<sign_id>")
+		response, err := c.SetSignIdForKioskIds(ctx, &pb.SetSignIdForKioskIdsRequest{
+			SignId: int32(sign_id),
+		})
+		if Verify(err) {
+			fmt.Printf("%+v\n", response)
+		}
+	} else if Match(args, "get sign for kiosk <kiosk_id>") {
+		kiosk_id, err := args.Int("<kiosk_id>")
+		response, err := c.GetSignIdForKioskId(ctx, &pb.GetSignIdForKioskIdRequest{
+			KioskId: int32(kiosk_id),
+		})
+		if Verify(err) {
+			fmt.Printf("%+v\n", response)
+		}
+	} else if Match(args, "get signs for kiosk <kiosk_id>") {
 
-	if Match(args, "create kiosk <name>") {
+	} else if Match(args, "create kiosk <name>") {
 		kiosk := &pb.Kiosk{
 			Name: args["<name>"].(string),
 		}
@@ -166,16 +193,7 @@ func main() {
 		if Verify(err) {
 			fmt.Printf("%+v\n", sign)
 		}
-	} else if Match(args, "set sign <sign_id> for kiosk <kiosk_id>") {
-
-	} else if Match(args, "set sign <sign_id> for all kiosks") {
-
-	} else if Match(args, "get sign <sign_id> for kiosk <kiosk_id>") {
-
-	} else if Match(args, "get signs for kiosk <kiosk_id>") {
-
 	}
-
 	//	func (c *displayClient) SetSignForKiosks(ctx context.Context, in *SetSignRequest, opts ...grpc.CallOption) (*google_protobuf.Empty, error) {
 	//	func (c *displayClient) GetSignForKiosk(ctx context.Context, in *GetSignForKioskRequest, opts ...grpc.CallOption) (*Sign, error) {
 	//	func (c *displayClient) GetSignsForKiosk(ctx context.Context, in *GetSignForKioskRequest, opts ...grpc.CallOption) (Display_GetSignsForKioskClient, error) {
