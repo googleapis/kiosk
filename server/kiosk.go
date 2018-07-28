@@ -15,6 +15,8 @@
 package main
 
 import (
+	"errors"
+
 	google_protobuf "github.com/golang/protobuf/ptypes/empty"
 	pb "github.com/googleapis/kiosk/generated"
 	context "golang.org/x/net/context"
@@ -59,12 +61,23 @@ func (s *DisplayServer) ListKiosks(c context.Context, x *google_protobuf.Empty) 
 
 // Get a kiosk.
 func (s *DisplayServer) GetKiosk(c context.Context, r *pb.GetKioskRequest) (*pb.Kiosk, error) {
-	return nil, nil
+	i := r.Id
+	if i >= 0 && i < int32(len(s.kiosks)) && s.kiosks[i] != nil {
+		return s.kiosks[i], nil
+	} else {
+		return nil, errors.New("invalid kiosk id")
+	}
 }
 
 // Delete a kiosk.
 func (s *DisplayServer) DeleteKiosk(c context.Context, r *pb.DeleteKioskRequest) (*google_protobuf.Empty, error) {
-	return nil, nil
+	i := r.Id
+	if i >= 0 && i < int32(len(s.kiosks)) && s.kiosks[i] != nil {
+		s.kiosks[i] = nil
+		return &google_protobuf.Empty{}, nil
+	} else {
+		return nil, errors.New("invalid kiosk id")
+	}
 }
 
 // Create a sign. This enrolls the sign for sign display.

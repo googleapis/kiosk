@@ -17,17 +17,19 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"log"
+	"strings"
 
-	"crypto/tls"
-
-	"github.com/docopt/docopt-go"
 	"github.com/golang/protobuf/ptypes/empty"
-	pb "github.com/googleapis/kiosk/generated"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+
+	"github.com/docopt/docopt-go"
+
+	pb "github.com/googleapis/kiosk/generated"
 )
 
 const (
@@ -36,29 +38,56 @@ const (
 	defaultMessage = "Hello."
 )
 
+func Verify(err error) bool {
+	if err != nil {
+		log.Printf("%+v", err)
+		return false
+	}
+	return true
+}
+
+func Match(a map[string]interface{}, command string) bool {
+	words := strings.Split(command, " ")
+	for _, w := range words {
+		switch v := a[w].(type) {
+		case bool:
+			if v != true {
+				return false
+			}
+		case string:
+			continue
+		default:
+			return false
+		}
+	}
+	fmt.Printf("%s\n", command)
+	fmt.Printf("%d\n", len(a))
+	return true
+}
+
 func main() {
 	usage := `Kiosk Tool.
 
   Usage:
     k create kiosk <name>
     k list kiosks
-    k get kiosk <id>
-    k delete kiosk <id>
+    k get kiosk <kiosk_id>
+    k delete kiosk <kiosk_id>
     k create sign <name>
     k list signs
-    k get sign <id>
-    k delete sign <id>
-    k set sign <id> for kiosk <id>
-    k set sign <id> for all kiosks
-    k get sign for kiosk <id>
-    k get signs for kiosk <id>
+    k get sign <sign_id>
+    k delete sign <sign_id>
+    k set sign <sign_id> for kiosk <kiosk_id>
+    k set sign <sign_id> for all kiosks
+    k get sign for kiosk <kiosk_id>
+    k get signs for kiosk <kiosk_id>
 
   Options:
     --name=<name> Name for new kiosk or sign.
 `
-	arguments, _ := docopt.ParseDoc(usage)
+	args, _ := docopt.ParseDoc(usage)
 
-	fmt.Println(arguments)
+	//fmt.Println(args)
 
 	flag.Parse()
 
@@ -80,33 +109,71 @@ func main() {
 	}
 	defer conn.Close()
 	c := pb.NewDisplayClient(conn)
-	fmt.Printf("connected %+v\n", c)
 
 	ctx := context.TODO()
 
-	if arguments["create"].(bool) && arguments["kiosk"].(bool) {
+	if Match(args, "create kiosk <name>") {
 		kiosk := &pb.Kiosk{
-			Name: arguments["<name>"].(string),
+			Name: args["<name>"].(string),
 		}
 		newkiosk, err := c.CreateKiosk(ctx, kiosk)
-		fmt.Printf("created %+v (err %+v)\n", newkiosk, err)
-	}
-
-	if arguments["list"].(bool) && arguments["kiosks"].(bool) {
+		if Verify(err) {
+			fmt.Printf("%+v\n", newkiosk)
+		}
+	} else if Match(args, "list kiosks") {
 		response, err := c.ListKiosks(ctx, &empty.Empty{})
-		fmt.Printf("listing %+v (err %+v)\n", response, err)
-	}
-
-	if arguments["get"].(bool) && arguments["kiosk"].(bool) {
-		id, _ := arguments.Int("<id>")
-
+		if Verify(err) {
+			for _, k := range response.Kiosks {
+				fmt.Printf("%+v\n", k)
+			}
+		}
+	} else if Match(args, "get kiosk <kiosk_id>") {
+		id, err := args.Int("<kiosk_id>")
 		kiosk, err := c.GetKiosk(ctx, &pb.GetKioskRequest{Id: int32(id)})
-		fmt.Printf("created %+v (err %+v)\n", kiosk, err)
-	}
+		if Verify(err) {
+			fmt.Printf("%+v\n", kiosk)
+		}
+	} else if Match(args, "delete kiosk <kiosk_id>") {
+		id, err := args.Int("<kiosk_id>")
+		kiosk, err := c.DeleteKiosk(ctx, &pb.DeleteKioskRequest{Id: int32(id)})
+		if Verify(err) {
+			fmt.Printf("%+v\n", kiosk)
+		}
+	} else if Match(args, "create sign") {
+		sign := &pb.Sign{
+			Name: args["<name>"].(string),
+		}
+		newsign, err := c.CreateSign(ctx, sign)
+		if Verify(err) {
+			fmt.Printf("%+v\n", newsign)
+		}
+	} else if Match(args, "list signs") {
+		response, err := c.ListSigns(ctx, &empty.Empty{})
+		if Verify(err) {
+			for _, k := range response.Signs {
+				fmt.Printf("%+v\n", k)
+			}
+		}
+	} else if Match(args, "get sign") {
+		id, err := args.Int("<sign_id>")
+		sign, err := c.GetSign(ctx, &pb.GetSignRequest{Id: int32(id)})
+		if Verify(err) {
+			fmt.Printf("%+v\n", sign)
+		}
+	} else if Match(args, "delete sign") {
+		id, err := args.Int("<sign_id>")
+		sign, err := c.DeleteSign(ctx, &pb.DeleteSignRequest{Id: int32(id)})
+		if Verify(err) {
+			fmt.Printf("%+v\n", sign)
+		}
+	} else if Match(args, "set sign <sign_id> for kiosk <kiosk_id>") {
 
-	if arguments["delete"].(bool) && arguments["kiosk"].(bool) {
-		kiosk, err := c.DeleteKiosk(ctx, &pb.DeleteKioskRequest{Id: arguments["<id>"].(int32)})
-		fmt.Printf("created %+v (err %+v)\n", kiosk, err)
+	} else if Match(args, "set sign <sign_id> for all kiosks") {
+
+	} else if Match(args, "get sign <sign_id> for kiosk <kiosk_id>") {
+
+	} else if Match(args, "get signs for kiosk <kiosk_id>") {
+
 	}
 
 	//	func (c *displayClient) SetSignForKiosks(ctx context.Context, in *SetSignRequest, opts ...grpc.CallOption) (*google_protobuf.Empty, error) {
