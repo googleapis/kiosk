@@ -61,7 +61,6 @@ func Match(a map[string]interface{}, command string) bool {
 		}
 	}
 	fmt.Printf("%s\n", command)
-	fmt.Printf("%d\n", len(a))
 	return true
 }
 
@@ -138,7 +137,20 @@ func main() {
 			fmt.Printf("%+v\n", response)
 		}
 	} else if Match(args, "get signs for kiosk <kiosk_id>") {
-
+		kiosk_id, err := args.Int("<kiosk_id>")
+		client, err := c.GetSignIdsForKioskId(ctx, &pb.GetSignIdForKioskIdRequest{
+			KioskId: int32(kiosk_id),
+		})
+		if Verify(err) {
+			for {
+				response, err := client.Recv()
+				if Verify(err) {
+					fmt.Printf("%+v\n", response)
+				} else {
+					break
+				}
+			}
+		}
 	} else if Match(args, "create kiosk <name>") {
 		kiosk := &pb.Kiosk{
 			Name: args["<name>"].(string),
@@ -194,8 +206,4 @@ func main() {
 			fmt.Printf("%+v\n", sign)
 		}
 	}
-	//	func (c *displayClient) SetSignForKiosks(ctx context.Context, in *SetSignRequest, opts ...grpc.CallOption) (*google_protobuf.Empty, error) {
-	//	func (c *displayClient) GetSignForKiosk(ctx context.Context, in *GetSignForKioskRequest, opts ...grpc.CallOption) (*Sign, error) {
-	//	func (c *displayClient) GetSignsForKiosk(ctx context.Context, in *GetSignForKioskRequest, opts ...grpc.CallOption) (Display_GetSignsForKioskClient, error) {
-
 }

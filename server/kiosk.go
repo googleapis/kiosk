@@ -1,4 +1,4 @@
-// Copyright 2018 Google Inc. All Rights Reserved.
+// Copyright 2018 Google LLC. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,25 +16,33 @@ package main
 
 import (
 	"errors"
+	"fmt"
+	"sync"
+	"time"
 
 	google_protobuf "github.com/golang/protobuf/ptypes/empty"
 	pb "github.com/googleapis/kiosk/generated"
 	context "golang.org/x/net/context"
 )
 
+const SIZE = 1000
+
 type DisplayServer struct {
 	kiosks             []*pb.Kiosk
 	signs              []*pb.Sign
 	signIdsForKioskIds []int32
+	subscribers        []map[chan int32]bool
 	nextKioskId        int32
 	nextSignId         int32
+	mux                sync.Mutex
 }
 
 func NewDisplayServer() *DisplayServer {
 	return &DisplayServer{
-		kiosks:             make([]*pb.Kiosk, 1000, 1000),
-		signs:              make([]*pb.Sign, 1000, 1000),
-		signIdsForKioskIds: make([]int32, 1000, 1000),
+		kiosks:             make([]*pb.Kiosk, SIZE, SIZE),
+		signs:              make([]*pb.Sign, SIZE, SIZE),
+		signIdsForKioskIds: make([]int32, SIZE, SIZE),
+		subscribers:        make([]map[chan int32]bool, SIZE, SIZE),
 		nextKioskId:        1,
 		nextSignId:         1,
 	}
@@ -42,6 +50,8 @@ func NewDisplayServer() *DisplayServer {
 
 // Create a kiosk. This enrolls the kiosk for sign display.
 func (s *DisplayServer) CreateKiosk(c context.Context, kiosk *pb.Kiosk) (*pb.Kiosk, error) {
+	s.mux.Lock()
+	defer s.mux.Unlock()
 	kiosk.Id = s.nextKioskId
 	s.kiosks[kiosk.Id] = kiosk
 	s.nextKioskId++
@@ -50,6 +60,8 @@ func (s *DisplayServer) CreateKiosk(c context.Context, kiosk *pb.Kiosk) (*pb.Kio
 
 // List active kiosks.
 func (s *DisplayServer) ListKiosks(c context.Context, x *google_protobuf.Empty) (*pb.ListKiosksResponse, error) {
+	s.mux.Lock()
+	defer s.mux.Unlock()
 	response := &pb.ListKiosksResponse{}
 	for _, k := range s.kiosks {
 		if k != nil {
@@ -61,6 +73,8 @@ func (s *DisplayServer) ListKiosks(c context.Context, x *google_protobuf.Empty) 
 
 // Get a kiosk.
 func (s *DisplayServer) GetKiosk(c context.Context, r *pb.GetKioskRequest) (*pb.Kiosk, error) {
+	s.mux.Lock()
+	defer s.mux.Unlock()
 	i := r.Id
 	if i >= 0 && i < int32(len(s.kiosks)) && s.kiosks[i] != nil {
 		return s.kiosks[i], nil
@@ -71,6 +85,8 @@ func (s *DisplayServer) GetKiosk(c context.Context, r *pb.GetKioskRequest) (*pb.
 
 // Delete a kiosk.
 func (s *DisplayServer) DeleteKiosk(c context.Context, r *pb.DeleteKioskRequest) (*google_protobuf.Empty, error) {
+	s.mux.Lock()
+	defer s.mux.Unlock()
 	i := r.Id
 	if i >= 0 && i < int32(len(s.kiosks)) && s.kiosks[i] != nil {
 		s.kiosks[i] = nil
@@ -82,6 +98,8 @@ func (s *DisplayServer) DeleteKiosk(c context.Context, r *pb.DeleteKioskRequest)
 
 // Create a sign. This enrolls the sign for sign display.
 func (s *DisplayServer) CreateSign(c context.Context, sign *pb.Sign) (*pb.Sign, error) {
+	s.mux.Lock()
+	defer s.mux.Unlock()
 	sign.Id = s.nextSignId
 	s.signs[sign.Id] = sign
 	s.nextSignId++
@@ -90,6 +108,8 @@ func (s *DisplayServer) CreateSign(c context.Context, sign *pb.Sign) (*pb.Sign, 
 
 // List active signs.
 func (s *DisplayServer) ListSigns(c context.Context, x *google_protobuf.Empty) (*pb.ListSignsResponse, error) {
+	s.mux.Lock()
+	defer s.mux.Unlock()
 	response := &pb.ListSignsResponse{}
 	for _, k := range s.signs {
 		if k != nil {
@@ -101,6 +121,8 @@ func (s *DisplayServer) ListSigns(c context.Context, x *google_protobuf.Empty) (
 
 // Get a sign.
 func (s *DisplayServer) GetSign(c context.Context, r *pb.GetSignRequest) (*pb.Sign, error) {
+	s.mux.Lock()
+	defer s.mux.Unlock()
 	i := r.Id
 	if i >= 0 && i < int32(len(s.signs)) && s.signs[i] != nil {
 		return s.signs[i], nil
@@ -111,6 +133,8 @@ func (s *DisplayServer) GetSign(c context.Context, r *pb.GetSignRequest) (*pb.Si
 
 // Delete a sign.
 func (s *DisplayServer) DeleteSign(c context.Context, r *pb.DeleteSignRequest) (*google_protobuf.Empty, error) {
+	s.mux.Lock()
+	defer s.mux.Unlock()
 	i := r.Id
 	if i >= 0 && i < int32(len(s.signs)) && s.signs[i] != nil {
 		s.signs[i] = nil
@@ -122,12 +146,24 @@ func (s *DisplayServer) DeleteSign(c context.Context, r *pb.DeleteSignRequest) (
 
 // Set a sign for display on one or more kiosks.
 func (s *DisplayServer) SetSignIdForKioskIds(c context.Context, r *pb.SetSignIdForKioskIdsRequest) (*google_protobuf.Empty, error) {
+	s.mux.Lock()
+	defer s.mux.Unlock()
 	for _, kiosk_id := range r.KioskIds {
 		s.signIdsForKioskIds[kiosk_id] = r.SignId
+		if s.subscribers[kiosk_id] != nil {
+			for c, _ := range s.subscribers[kiosk_id] {
+				c <- r.SignId
+			}
+		}
 	}
 	if len(r.KioskIds) == 0 {
 		for kiosk_id, _ := range s.signIdsForKioskIds {
 			s.signIdsForKioskIds[kiosk_id] = r.SignId
+			if s.subscribers[kiosk_id] != nil {
+				for c, _ := range s.subscribers[kiosk_id] {
+					c <- r.SignId
+				}
+			}
 		}
 	}
 	return &google_protobuf.Empty{}, nil
@@ -135,6 +171,8 @@ func (s *DisplayServer) SetSignIdForKioskIds(c context.Context, r *pb.SetSignIdF
 
 // Get the sign that should be displayed on a kiosk.
 func (s *DisplayServer) GetSignIdForKioskId(c context.Context, r *pb.GetSignIdForKioskIdRequest) (*pb.GetSignIdResponse, error) {
+	s.mux.Lock()
+	defer s.mux.Unlock()
 	kiosk_id := r.KioskId
 	sign_id := s.signIdsForKioskIds[kiosk_id]
 	response := &pb.GetSignIdResponse{
@@ -144,6 +182,42 @@ func (s *DisplayServer) GetSignIdForKioskId(c context.Context, r *pb.GetSignIdFo
 }
 
 // Get signs that should be displayed on a kiosk. Streams.
-func (s *DisplayServer) GetSignIdsForKioskId(*pb.GetSignIdForKioskIdRequest, pb.Display_GetSignIdsForKioskIdServer) error {
+func (s *DisplayServer) GetSignIdsForKioskId(r *pb.GetSignIdForKioskIdRequest, stream pb.Display_GetSignIdsForKioskIdServer) error {
+	s.mux.Lock()
+	kiosk_id := r.KioskId
+	sign_id := s.signIdsForKioskIds[kiosk_id]
+	response := &pb.GetSignIdResponse{
+		SignId: sign_id,
+	}
+	stream.Send(response)
+	ch := make(chan int32)
+	if s.subscribers[kiosk_id] == nil {
+		s.subscribers[kiosk_id] = make(map[chan int32]bool)
+	}
+	s.subscribers[kiosk_id][ch] = true
+	s.mux.Unlock()
+	timer := time.NewTimer(30 * time.Second)
+	running := true
+	for running {
+		select {
+		case <-timer.C:
+			running = false
+			break
+		case sign_id, ok := <-ch:
+			response := &pb.GetSignIdResponse{
+				SignId: sign_id,
+			}
+			err := stream.Send(response)
+			if !ok || err != nil {
+				fmt.Printf("error %+v\n", err)
+				running = false
+				break
+			}
+		}
+	}
+	s.mux.Lock()
+	fmt.Printf("removing subscriber\n")
+	delete(s.subscribers[kiosk_id], ch)
+	s.mux.Unlock()
 	return nil
 }
