@@ -25,13 +25,11 @@ import (
 	context "golang.org/x/net/context"
 )
 
-const SIZE = 1000
-
 type DisplayServer struct {
-	kiosks             []*pb.Kiosk
-	signs              []*pb.Sign
-	signIdsForKioskIds []int32
-	subscribers        []map[chan int32]bool
+	kiosks             map[int32]*pb.Kiosk
+	signs              map[int32]*pb.Sign
+	signIdsForKioskIds map[int32]int32
+	subscribers        map[int32]map[chan int32]bool
 	nextKioskId        int32
 	nextSignId         int32
 	mux                sync.Mutex
@@ -39,10 +37,10 @@ type DisplayServer struct {
 
 func NewDisplayServer() *DisplayServer {
 	return &DisplayServer{
-		kiosks:             make([]*pb.Kiosk, SIZE, SIZE),
-		signs:              make([]*pb.Sign, SIZE, SIZE),
-		signIdsForKioskIds: make([]int32, SIZE, SIZE),
-		subscribers:        make([]map[chan int32]bool, SIZE, SIZE),
+		kiosks:             make(map[int32]*pb.Kiosk),
+		signs:              make(map[int32]*pb.Sign),
+		signIdsForKioskIds: make(map[int32]int32),
+		subscribers:        make(map[int32]map[chan int32]bool),
 		nextKioskId:        1,
 		nextSignId:         1,
 	}
@@ -89,7 +87,7 @@ func (s *DisplayServer) DeleteKiosk(c context.Context, r *pb.DeleteKioskRequest)
 	defer s.mux.Unlock()
 	i := r.Id
 	if i >= 0 && i < int32(len(s.kiosks)) && s.kiosks[i] != nil {
-		s.kiosks[i] = nil
+		delete(s.kiosks, i)
 		return &google_protobuf.Empty{}, nil
 	} else {
 		return nil, errors.New("invalid kiosk id")
@@ -137,7 +135,7 @@ func (s *DisplayServer) DeleteSign(c context.Context, r *pb.DeleteSignRequest) (
 	defer s.mux.Unlock()
 	i := r.Id
 	if i >= 0 && i < int32(len(s.signs)) && s.signs[i] != nil {
-		s.signs[i] = nil
+		delete(s.signs, i)
 		return &google_protobuf.Empty{}, nil
 	} else {
 		return nil, errors.New("invalid sign id")
@@ -157,7 +155,8 @@ func (s *DisplayServer) SetSignIdForKioskIds(c context.Context, r *pb.SetSignIdF
 		}
 	}
 	if len(r.KioskIds) == 0 {
-		for kiosk_id, _ := range s.signIdsForKioskIds {
+		var kiosk_id int32
+		for kiosk_id = 1; kiosk_id < s.nextKioskId; kiosk_id++ {
 			s.signIdsForKioskIds[kiosk_id] = r.SignId
 			if s.subscribers[kiosk_id] != nil {
 				for c, _ := range s.subscribers[kiosk_id] {
@@ -174,6 +173,9 @@ func (s *DisplayServer) GetSignIdForKioskId(c context.Context, r *pb.GetSignIdFo
 	s.mux.Lock()
 	defer s.mux.Unlock()
 	kiosk_id := r.KioskId
+	if s.kiosks[kiosk_id] == nil {
+		return nil, errors.New("invalid kiosk id")
+	}
 	sign_id := s.signIdsForKioskIds[kiosk_id]
 	response := &pb.GetSignIdResponse{
 		SignId: sign_id,
@@ -184,7 +186,11 @@ func (s *DisplayServer) GetSignIdForKioskId(c context.Context, r *pb.GetSignIdFo
 // Get signs that should be displayed on a kiosk. Streams.
 func (s *DisplayServer) GetSignIdsForKioskId(r *pb.GetSignIdForKioskIdRequest, stream pb.Display_GetSignIdsForKioskIdServer) error {
 	s.mux.Lock()
+	defer s.mux.Unlock()
 	kiosk_id := r.KioskId
+	if s.kiosks[kiosk_id] == nil {
+		return errors.New("invalid kiosk id")
+	}
 	sign_id := s.signIdsForKioskIds[kiosk_id]
 	response := &pb.GetSignIdResponse{
 		SignId: sign_id,
@@ -195,7 +201,7 @@ func (s *DisplayServer) GetSignIdsForKioskId(r *pb.GetSignIdForKioskIdRequest, s
 		s.subscribers[kiosk_id] = make(map[chan int32]bool)
 	}
 	s.subscribers[kiosk_id][ch] = true
-	s.mux.Unlock()
+	s.mux.Unlock() // unlock to wait for sign updates
 	timer := time.NewTimer(30 * time.Second)
 	running := true
 	for running {
@@ -215,9 +221,8 @@ func (s *DisplayServer) GetSignIdsForKioskId(r *pb.GetSignIdForKioskIdRequest, s
 			}
 		}
 	}
-	s.mux.Lock()
-	fmt.Printf("removing subscriber\n")
+	s.mux.Lock() // relock to unsubscribe
+	fmt.Printf("removing subscriber for kiosk %d\n", kiosk_id)
 	delete(s.subscribers[kiosk_id], ch)
-	s.mux.Unlock()
 	return nil
 }
