@@ -18,16 +18,15 @@ import (
 	"log"
 	"net"
 
+	pb "github.com/googleapis/kiosk/generated"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-	pb "github.com/googleapis/kiosk/generated"
 )
 
 const (
 	useSSL = false
 )
 
-// [START main]
 func main() {
 	var err error
 	var lis net.Listener
@@ -48,8 +47,7 @@ func main() {
 		}
 		grpcServer = grpc.NewServer(grpc.Creds(creds))
 	}
-        displayServer := NewDisplayServer()
+	displayServer := NewDisplayServer()
 	pb.RegisterDisplayServer(grpcServer, displayServer)
 	grpcServer.Serve(lis)
 }
-// [END main]
