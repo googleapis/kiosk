@@ -18,8 +18,8 @@ package main
 import (
 	"context"
 	"crypto/tls"
-	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"strings"
 
@@ -72,7 +72,7 @@ func main() {
     k list kiosks
     k get kiosk <kiosk_id>
     k delete kiosk <kiosk_id>
-    k create sign <name>
+    k create sign <name> [--text=<text>] [--image=<image>]
     k list signs
     k get sign <sign_id>
     k delete sign <sign_id>
@@ -82,13 +82,14 @@ func main() {
     k get signs for kiosk <kiosk_id>
 
   Options:
-    --name=<name> Name for new kiosk or sign.
-`
+    <name> Name for new kiosk or sign.
+    --text=<text> Text to display on a sign.
+    --image=<image> Image (PNG file) to display on a sign.
+    
+    `
 	args, _ := docopt.ParseDoc(usage)
 
-	//fmt.Println(args)
-
-	flag.Parse()
+	fmt.Println(args)
 
 	// Set up a connection to the server.
 	var conn *grpc.ClientConn
@@ -181,6 +182,19 @@ func main() {
 	} else if Match(args, "create sign") {
 		sign := &pb.Sign{
 			Name: args["<name>"].(string),
+		}
+		text, has_text := args.String("--text")
+		if has_text == nil {
+			sign.Text = text
+		}
+		image_name, has_image := args.String("--image")
+		if has_image == nil {
+			image, err := ioutil.ReadFile(image_name)
+			if Verify(err) {
+				sign.Image = []byte(image)
+			} else {
+				return
+			}
 		}
 		newsign, err := c.CreateSign(ctx, sign)
 		if Verify(err) {

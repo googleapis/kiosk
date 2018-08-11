@@ -74,7 +74,7 @@ func (s *DisplayServer) GetKiosk(c context.Context, r *pb.GetKioskRequest) (*pb.
 	s.mux.Lock()
 	defer s.mux.Unlock()
 	i := r.Id
-	if i >= 0 && i < int32(len(s.kiosks)) && s.kiosks[i] != nil {
+	if s.kiosks[i] != nil {
 		return s.kiosks[i], nil
 	} else {
 		return nil, errors.New("invalid kiosk id")
@@ -122,7 +122,7 @@ func (s *DisplayServer) GetSign(c context.Context, r *pb.GetSignRequest) (*pb.Si
 	s.mux.Lock()
 	defer s.mux.Unlock()
 	i := r.Id
-	if i >= 0 && i < int32(len(s.signs)) && s.signs[i] != nil {
+	if s.signs[i] != nil {
 		return s.signs[i], nil
 	} else {
 		return nil, errors.New("invalid sign id")
