@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Copyright 2018 Google LLC
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     https://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools">
+    <data>
+        <import type="android.view.View"/>
+        <import type="com.google.example.kiosk.client.KioskViewModel.TextPosition"/>
+        <import type="com.google.example.kiosk.client.KioskViewModel.Vis"/>
+        <variable name="model" type="com.google.example.kiosk.client.KioskViewModel"/>
+    </data>
+    <android.support.design.widget.CoordinatorLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@{model.errorMessage == null ? @color/colorBackground : @color/colorErrorBackground}"
+        tools:context=".MainActivity">
+
+        <android.support.design.widget.AppBarLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:theme="@style/AppTheme.AppBarOverlay">
+
+            <android.support.v7.widget.Toolbar
+                android:id="@+id/toolbar"
+                android:layout_width="match_parent"
+                android:layout_height="?attr/actionBarSize"
+                android:background="?attr/colorPrimary"
+                app:title='@{model.kiosk.id + ": " + model.kiosk.name}'
+                app:popupTheme="@style/AppTheme.PopupOverlay" />
+        </android.support.design.widget.AppBarLayout>
+
+        <android.support.constraint.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior"
+            tools:context=".MainActivity"
+            tools:showIn="@layout/activity_main">
+
+            <!-- No sign has been set -->
+            <android.support.design.card.MaterialCardView
+                android:visibility="@{Vis.showNoSign(model.connected, model.errorMessage, model.sign)}"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/Widget.MaterialComponents.CardView"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintLeft_toLeftOf="parent"
+                app:layout_constraintRight_toRightOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:gravity="center">
+
+                    <TextView
+                        style="@style/TextAppearance.MaterialComponents.Headline5"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:padding="@dimen/padding_large"
+                        android:textAlignment="center"
+                        android:text="@string/kiosk_has_no_sign" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        style="@style/TextAppearance.MaterialComponents.Subtitle1"
+                        android:padding="@dimen/padding_large"
+                        android:background="@color/colorAccent"
+                        android:textColor="@color/colorWhite"
+                        android:text="@{String.format(@string/create_sign_example_code, model.kiosk.id)}"/>
+                </LinearLayout>
+            </android.support.design.card.MaterialCardView>
+
+            <!-- Sign image -->
+            <ImageView
+                android:visibility="@{Vis.showSign(model.connected, model.errorMessage, model.sign)}"
+                android:id="@+id/signImage"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:background="@color/colorWhite"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintLeft_toLeftOf="parent"
+                app:layout_constraintRight_toRightOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <!-- Sign text (when image is not present) -->
+            <LinearLayout
+                android:visibility="@{Vis.showSign(model.connected, model.errorMessage, model.sign, model.textPosition == TextPosition.CENTER)}"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintLeft_toLeftOf="parent"
+                app:layout_constraintRight_toRightOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="56pt"
+                    android:paddingLeft="@dimen/padding_large"
+                    android:text='“'
+                    android:textAlignment="textStart"
+                    android:textColor="@color/colorGray"
+                    android:textSize="64pt" />
+
+                <TextView
+                    style="@style/TextAppearance.AppCompat.Headline"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingLeft="@dimen/padding_large"
+                    android:paddingRight="@dimen/padding_large"
+                    android:paddingBottom="@dimen/padding"
+                    android:textAlignment="center"
+                    android:text="@{model.sign.text}" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="64pt"
+                    android:paddingRight="@dimen/padding_large"
+                    android:gravity="end"
+                    android:textSize="64pt"
+                    android:textColor="@color/colorGray"
+                    android:text='”'/>
+            </LinearLayout>
+
+            <!-- Sign text (when image is present) -->
+            <LinearLayout
+                android:visibility="@{Vis.showSign(model.connected, model.errorMessage, model.sign, model.textPosition == TextPosition.BOTTOM)}"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:background="@color/colorOverlay"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintLeft_toLeftOf="parent"
+                app:layout_constraintRight_toRightOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintVertical_bias="1.0">
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="?android:attr/dividerVertical" />
+
+                <TextView
+                    style="@style/TextAppearance.AppCompat.Headline"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:padding="@dimen/padding_large"
+                    android:textAlignment="center"
+                    android:text="@{model.sign.text}" />
+            </LinearLayout>
+
+
+            <!-- Error Message -->
+            <LinearLayout
+                android:visibility="@{Vis.showIfError(model.errorMessage)}"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:orientation="vertical"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
+
+                <TextView
+                    style="@style/TextAppearance.AppCompat.Headline"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingBottom="@dimen/padding"
+                    android:textAlignment="center"
+                    android:textColor="@color/colorErrorText"
+                    android:text="@string/uh_oh"/>
+
+                <TextView
+                    style="@style/TextAppearance.AppCompat.Subhead"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingBottom="@dimen/padding"
+                    android:textAlignment="center"
+                    android:textColor="@color/colorErrorText"
+                    android:text="@{model.errorMessage}" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingBottom="@dimen/padding"
+                    android:textAlignment="center"
+                    android:textColor="@color/colorErrorText"
+                    android:text="@{model.errorStacktrace}"/>
+            </LinearLayout>
+
+            <ProgressBar
+                android:visibility="@{Vis.showProgress(model.connected, model.errorMessage)}"
+                style="@android:style/Widget.Material.ProgressBar.Large"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"/>
+        </android.support.constraint.ConstraintLayout>
+    </android.support.design.widget.CoordinatorLayout>
+</layout>
