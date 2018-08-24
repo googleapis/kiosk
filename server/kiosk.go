@@ -26,6 +26,7 @@ import (
 )
 
 type DisplayServer struct {
+	SessionLifetime    time.Duration
 	kiosks             map[int32]*pb.Kiosk
 	signs              map[int32]*pb.Sign
 	signIdsForKioskIds map[int32]int32
@@ -37,6 +38,7 @@ type DisplayServer struct {
 
 func NewDisplayServer() *DisplayServer {
 	return &DisplayServer{
+		SessionLifetime:    24 * time.Hour,
 		kiosks:             make(map[int32]*pb.Kiosk),
 		signs:              make(map[int32]*pb.Sign),
 		signIdsForKioskIds: make(map[int32]int32),
@@ -86,8 +88,9 @@ func (s *DisplayServer) DeleteKiosk(c context.Context, r *pb.DeleteKioskRequest)
 	s.mux.Lock()
 	defer s.mux.Unlock()
 	i := r.Id
-	if i >= 0 && i < int32(len(s.kiosks)) && s.kiosks[i] != nil {
+	if s.kiosks[i] != nil {
 		delete(s.kiosks, i)
+		s.kiosks[i] = nil
 		return &google_protobuf.Empty{}, nil
 	} else {
 		return nil, errors.New("invalid kiosk id")
@@ -134,7 +137,7 @@ func (s *DisplayServer) DeleteSign(c context.Context, r *pb.DeleteSignRequest) (
 	s.mux.Lock()
 	defer s.mux.Unlock()
 	i := r.Id
-	if i >= 0 && i < int32(len(s.signs)) && s.signs[i] != nil {
+	if s.signs[i] != nil {
 		delete(s.signs, i)
 		return &google_protobuf.Empty{}, nil
 	} else {
@@ -202,7 +205,7 @@ func (s *DisplayServer) GetSignIdsForKioskId(r *pb.GetSignIdForKioskIdRequest, s
 	}
 	s.subscribers[kiosk_id][ch] = true
 	s.mux.Unlock() // unlock to wait for sign updates
-	timer := time.NewTimer(30 * time.Second)
+	timer := time.NewTimer(s.SessionLifetime)
 	running := true
 	for running {
 		select {
