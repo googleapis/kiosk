@@ -40,9 +40,10 @@ android {
 }
 
 dependencies {
+    implementation project(path: ':kiosk-client')
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
-    compileOnly 'com.google.android.things:androidthings:+'
+    compileOnly 'com.google.android.things:androidthings:1.0'
     implementation"org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
 
     testImplementation 'junit:junit:4.12'

@@ -63,7 +63,10 @@ dependencies {
     api 'com.android.support:design:28.0.0-rc01'
     api 'com.android.support.constraint:constraint-layout:1.1.2'
     api "android.arch.lifecycle:extensions:$lifecycle_version"
-    api 'com.google.kgax:kgax-grpc:0.1.0'
+
+    // temporary
+    api 'com.github.googleapis.gax-kotlin:kgax-grpc:132f3f5'
+    compileOnly 'com.github.googleapis:gapic-generator-kotlin:c957593'
 
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version"
     testImplementation 'com.nhaarman:mockito-kotlin:1.6.0'
@@ -87,7 +90,7 @@ protobuf {
             artifact = 'io.grpc:protoc-gen-grpc-java:1.10.0'
         }
         client {
-            artifact = 'com.google.api:kotlin-client-generator:0.1.0:core@jar'
+            artifact = 'com.github.googleapis:gapic-generator-kotlin:c957593:core@jar'
         }
     }
     generateProtoTasks {

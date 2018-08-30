@@ -35,6 +35,7 @@ import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
 import com.google.example.kiosk.client.databinding.ActivityMainBinding
 import com.google.type.LatLng
 import io.grpc.okhttp.OkHttpChannelBuilder
@@ -60,6 +61,9 @@ class MainActivity : AppCompatActivity() {
 
         // get preferences
         preferences = getSharedPreferences(PREFS_FILE_NAME, Context.MODE_PRIVATE)
+
+        // get location services
+        locationClient = LocationServices.getFusedLocationProviderClient(this)
 
         // create client to access the kiosk API
         val host = preferences.getString(PREF_HOST, null) ?: PREF_HOST_DEFAULT

@@ -95,7 +95,7 @@ class KioskViewModel(
             }
             size = screenSize
             location = kioskLocation
-        }).on {
+        }).onUI {
             success = onComplete
             error = {
                 Log.e(TAG, "failed to register kiosk", it)
@@ -114,7 +114,7 @@ class KioskViewModel(
         kioskId = newId
         client.getKiosk(GetKioskRequest {
             id = newId
-        }).on {
+        }).onUI {
             success = {
                 kiosk.postValue(it.body)
                 subscribeToSigns(it.body)
@@ -165,7 +165,7 @@ class KioskViewModel(
 
         client.getSign(GetSignRequest {
             id = signId
-        }).on {
+        }).onUI {
             success = {
                 Log.i(TAG, "Fetched sign with id: $signId")
                 sign.postValue(it.body)
