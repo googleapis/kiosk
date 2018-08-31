@@ -46,11 +46,17 @@ import kotlinx.android.synthetic.main.activity_main.*
 
 private const val TAG = "Main"
 
-class MainActivity : AppCompatActivity() {
+/**
+ * Main activity for our application.
+ *
+ * The app for the phone will use this directly.
+ * The Android Things version will subclass this to take advantage of the hardware.
+ */
+open class MainActivity : AppCompatActivity() {
 
     private lateinit var displayClient: DisplayClient
     private lateinit var locationClient: FusedLocationProviderClient
-    private lateinit var model: KioskViewModel
+    protected lateinit var model: KioskViewModel
 
     private lateinit var preferences: SharedPreferences
 
@@ -94,13 +100,8 @@ class MainActivity : AppCompatActivity() {
             }
         })
 
-        // register this kiosk after getting the device location
-        if (ContextCompat.checkSelfPermission(applicationContext,
-                        ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            locationClient.lastLocation.addOnSuccessListener { registerKiosk(it) }
-        } else {
-            registerKiosk(null)
-        }
+        // reuse the name if this device has been previously registered
+        registerKiosk(preferences.getInt(PREF_KIOSK_ID, -1))
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -117,11 +118,28 @@ class MainActivity : AppCompatActivity() {
         return super.onOptionsItemSelected(item)
     }
 
-    private fun registerKiosk(location: Location?) {
-        // reuse the name if this device has been previously registered
-        val id = preferences.getInt(PREF_KIOSK_ID, -1)
+    /**
+     * Register this device as a kiosk with the given [id].
+     *
+     * If the [id] is less than 0 (default) then attempt to register as a new kiosk.
+     */
+    protected fun registerKiosk(id: Int = -1) {
+        // register this kiosk after getting the device location
+        if (ContextCompat.checkSelfPermission(applicationContext,
+                        ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            locationClient.lastLocation.addOnSuccessListener { registerKiosk(id, it) }
+        } else {
+            registerKiosk(id, null)
+        }
+    }
 
+    private fun registerKiosk(id: Int, location: Location?) {
         if (id < 0) {
+            // ensure no old id is left
+            preferences.edit()
+                    .remove(PREF_KIOSK_ID)
+                    .apply()
+
             // get more info about the device
             val displayMetrics = DisplayMetrics()
             windowManager.defaultDisplay.getMetrics(displayMetrics)

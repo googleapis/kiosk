@@ -111,7 +111,18 @@ class KioskViewModel(
     fun switchToKiosk(newId: Int) {
         Log.i(TAG, "Switching to kiosk: $newId")
 
+        // reset state
         kioskId = newId
+        kiosk.postValue(null)
+        sign.postValue(null)
+        connected.postValue(false)
+        errorMessage.postValue(null)
+        errorStacktrace.postValue(null)
+
+        // TODO: shutdown signSubscription (no way to do it yet with the Kotlin clients)
+        //       so we'll just ignore the events when this happens
+
+        // switch
         client.getKiosk(GetKioskRequest {
             id = newId
         }).onUI {
@@ -140,15 +151,17 @@ class KioskViewModel(
 
         // process the responses
         stream.responses.onNext = {
-            Log.i(TAG, "Received updated sign: ${it.signId} from kiosk: ${k.id}")
-            fetchSign(it.signId, stream)
+            if (kiosk.value == k) {
+                Log.i(TAG, "Received updated sign: ${it.signId} from kiosk: ${k.id}")
+                fetchSign(it.signId, stream)
+            }
         }
         stream.responses.onCompleted = {
-            Log.i(TAG, "Subscription terminated for kiosk: ${k.id}")
-            connected.postValue(false)
-
-            // if this kiosk is still set, keep tring
             if (kiosk.value == k) {
+                Log.i(TAG, "Subscription terminated for kiosk: ${k.id}")
+                connected.postValue(false)
+
+                // if this kiosk is still set, keep trying
                 subscribeToSigns(k)
             }
         }
@@ -168,13 +181,16 @@ class KioskViewModel(
         }).onUI {
             success = {
                 Log.i(TAG, "Fetched sign with id: $signId")
-                sign.postValue(it.body)
-                val position = if (it.body.image != null && !it.body.image.isEmpty()) {
-                    TextPosition.BOTTOM
-                } else {
-                    TextPosition.CENTER
+
+                if (!it.body.equals(sign.value)) {
+                    sign.postValue(it.body)
+                    val position = if (it.body.image != null && !it.body.image.isEmpty()) {
+                        TextPosition.BOTTOM
+                    } else {
+                        TextPosition.CENTER
+                    }
+                    textPosition.postValue(position)
                 }
-                textPosition.postValue(position)
             }
             error = {
                 Log.e(TAG, "Unable to getch sign: $signId")
