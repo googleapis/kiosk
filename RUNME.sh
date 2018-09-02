@@ -20,6 +20,7 @@ if [ ! -d "protos/api-common-protos" ]; then
   mv api-common-protos-master protos/api-common-protos
 fi
 
+go get github.com/golang/protobuf/protoc-gen-go
 go get google.golang.org/grpc
 
 mkdir -p generated
