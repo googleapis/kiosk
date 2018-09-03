@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 	"strings"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -34,8 +35,6 @@ import (
 
 const (
 	useSSL         = false
-	host           = "localhost"
-	defaultMessage = "Hello."
 )
 
 func Verify(err error) bool {
@@ -60,7 +59,7 @@ func Match(a map[string]interface{}, command string) bool {
 			return false
 		}
 	}
-	fmt.Printf("%s\n", command)
+	fmt.Printf("%s\n", strings.ToUpper(command))
 	return true
 }
 
@@ -89,15 +88,28 @@ func main() {
     `
 	args, _ := docopt.ParseDoc(usage)
 
-	fmt.Println(args)
+	host := os.Getenv("KIOSK_SERVER")
+	if host == "" {
+		host = "localhost"
+	}
+	port := os.Getenv("KIOSK_PORT")
+	if port == "" {
+		if useSSL {
+			port = "8443"
+		} else {
+			port = "8080"
+		}
+	}
+	address := host + ":" + port
+	fmt.Printf("FROM %s ", address)
 
 	// Set up a connection to the server.
 	var conn *grpc.ClientConn
 	var err error
 	if !useSSL {
-		conn, err = grpc.Dial("localhost:8080", grpc.WithInsecure())
+                conn, err = grpc.Dial(host + ":" + port, grpc.WithInsecure())
 	} else {
-		conn, err = grpc.Dial("localhost:443",
+		conn, err = grpc.Dial(host + ":" + port,
 			grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{
 				// remove the following line if the server certificate is signed by a certificate authority
 				InsecureSkipVerify: true,

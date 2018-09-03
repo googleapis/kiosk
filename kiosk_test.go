@@ -18,6 +18,8 @@ package test
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -26,8 +28,19 @@ import (
 	"google.golang.org/grpc"
 )
 
-// This test assumes that a Kiosk server is running locally.
-const service = "http://localhost:8080"
+func address() string {
+	host := os.Getenv("KIOSK_SERVER")
+	if host == "" {
+		host = "localhost"
+	}
+	port := os.Getenv("KIOSK_PORT")
+	if port == "" {
+		port = "8080"
+	}
+	address := host + ":" + port
+	fmt.Printf("from %s\n", address)
+	return address
+}
 
 func assertNoError(t *testing.T, err error) {
 	if err != nil {
@@ -44,7 +57,7 @@ func assertEqual(t *testing.T, a interface{}, b interface{}) {
 func TestKiosk(t *testing.T) {
 	// Create a connection to the server.
 	ctx, _ := context.WithTimeout(context.TODO(), 1*time.Second)
-	conn, err := grpc.DialContext(ctx, "localhost:8080", grpc.WithInsecure(), grpc.WithBlock())
+	conn, err := grpc.DialContext(ctx, address(), grpc.WithInsecure(), grpc.WithBlock())
 	assertNoError(t, err)
 	defer conn.Close()
 
