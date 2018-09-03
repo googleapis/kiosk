@@ -14,7 +14,7 @@
 # limitations under the License.
 
 #
-# This script runs as root as the startup script of a Google Container
+# This script runs as root as the startup script of a Google Compute
 # Engine instance. For more about startup scripts, see 
 #	https://cloud.google.com/compute/docs/startupscript
 #

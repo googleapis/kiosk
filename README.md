@@ -19,7 +19,6 @@ This project aims to demonstrate the following:
 - How to build a gRPC client with Go.
 - How to generate API clients in other languages.
 - How to annotate the API for HTTP transcoding.
-- How to run the API behind Envoy.
 - How to manage the API with Google Cloud Endpoints.
 
 ## Copyright
@@ -33,3 +32,17 @@ Released under the Apache 2.0 license.
 ## Contributing
 
 Please get involved! See our [guidelines for contributing](CONTRIBUTING.md).
+
+## Testing
+
+Use the `go test` command to verify a running server.
+
+By default, this looks for an API server running at localhost on 
+port 8080. Use the KIOSK_SERVER and KIOSK_PORT environment variables to 
+override this.
+
+## Run on Google Compute Engine
+
+The [gce](gce) directory contains a [SETUP.sh](gce/SETUP.sh) script that
+can be used to start a kiosk server on
+[Google Compute Engine](https://cloud.google.com/compute/).

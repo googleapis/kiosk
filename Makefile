@@ -1,5 +1,6 @@
 
 all:
+	./COMPILE-PROTOS.sh
 	cd server; go install .
 	cd k; go install .
 
