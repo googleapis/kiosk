@@ -22,7 +22,7 @@ android {
     compileSdkVersion 28
     defaultConfig {
         applicationId "com.google.example.kiosk.kioskapp"
-        minSdkVersion 24
+        minSdkVersion 27
         targetSdkVersion 28
         versionCode 1
         versionName "1.0"
@@ -40,10 +40,13 @@ android {
 }
 
 dependencies {
+    implementation project(path: ':kiosk-client')
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
-    compileOnly 'com.google.android.things:androidthings:+'
+    compileOnly 'com.google.android.things:androidthings:1.0'
     implementation"org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+
+    implementation 'com.github.androidthings.contrib-drivers:rainbowhat:647b5ed'
 
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.2'

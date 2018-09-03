@@ -37,7 +37,9 @@ allprojects {
     repositories {
         google()
         jcenter()
-        mavenLocal()
+
+        // temporary
+        maven { url 'https://jitpack.io' }
     }
 }
 

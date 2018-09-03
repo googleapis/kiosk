@@ -63,6 +63,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:singleLine="true"
+                        android:inputType="textNoSuggestions"
                         android:hint="@string/hint_server_hostname"
                         android:text="@={model.host}" />
                 </android.support.design.widget.TextInputLayout>
@@ -75,6 +76,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:singleLine="true"
+                        android:inputType="number"
                         android:hint="@string/hint_port"
                         android:text="@={Converter.intToString(model.port)}" />
                 </android.support.design.widget.TextInputLayout>
