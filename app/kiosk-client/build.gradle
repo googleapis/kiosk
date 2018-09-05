@@ -65,8 +65,8 @@ dependencies {
     api "android.arch.lifecycle:extensions:$lifecycle_version"
 
     // temporary
-    api 'com.github.googleapis.gax-kotlin:kgax-grpc:132f3f5'
-    compileOnly 'com.github.googleapis:gapic-generator-kotlin:c957593'
+    api 'com.github.googleapis.gax-kotlin:kgax-grpc:5b047e1'
+    compileOnly 'com.github.googleapis:gapic-generator-kotlin:cbaa366'
 
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version"
     testImplementation 'com.nhaarman:mockito-kotlin:1.6.0'
@@ -86,11 +86,8 @@ protobuf {
         javalite {
             artifact = 'com.google.protobuf:protoc-gen-javalite:3.0.0'
         }
-        grpc {
-            artifact = 'io.grpc:protoc-gen-grpc-java:1.10.0'
-        }
         client {
-            artifact = 'com.github.googleapis:gapic-generator-kotlin:c957593:core@jar'
+            artifact = 'com.github.googleapis:gapic-generator-kotlin:cbaa366:core@jar'
         }
     }
     generateProtoTasks {
@@ -100,9 +97,6 @@ protobuf {
             }
             task.plugins {
                 javalite {}
-                grpc {
-                    option 'lite'
-                }
                 client {
                     option "source=${projectDir}/../../protos"
                     option "test_output=${project.buildDir}/generated/source/protoTest/debugUnitTest/client"

@@ -39,7 +39,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="?attr/actionBarSize"
                 android:background="?attr/colorPrimary"
-                app:title='@{model.kiosk.id + ": " + model.kiosk.name}'
+                app:title='@{model.connected ? model.kiosk.id + ": " + model.kiosk.name : ""}'
                 app:popupTheme="@style/AppTheme.PopupOverlay" />
         </android.support.design.widget.AppBarLayout>
 
