@@ -21,11 +21,12 @@ import android.arch.lifecycle.AndroidViewModel
 import android.arch.lifecycle.MutableLiveData
 import android.arch.lifecycle.ViewModel
 import android.arch.lifecycle.ViewModelProvider
+import android.os.CountDownTimer
 import android.util.Log
 import android.view.View
+import com.google.common.base.Preconditions
 import com.google.kgax.grpc.CallResult
 import com.google.kgax.grpc.ServerStreamingCall
-import com.google.kgax.grpc.on
 import com.google.protobuf.Timestamp
 import com.google.type.LatLng
 import kiosk.DisplayClient
@@ -38,6 +39,8 @@ import kiosk.ScreenSize
 import kiosk.Sign
 
 private const val TAG = "KioskVM"
+
+private const val RETRY_INTERVAL = 2_000L
 
 /** A ViewModel for showing the current [sign] on a [kiosk]. */
 class KioskViewModel(
@@ -65,6 +68,7 @@ class KioskViewModel(
 
     private var kioskId: Int? = null
     private var signSubscription: ServerStreamingCall<GetSignIdResponse>? = null
+    private var reconnectPending = false
 
     init {
         connected.postValue(false)
@@ -99,6 +103,7 @@ class KioskViewModel(
             success = onComplete
             error = {
                 Log.e(TAG, "failed to register kiosk", it)
+
                 errorMessage.postValue(app.getString(R.string.error_kiosk_registration))
                 errorStacktrace.postValue(it.localizedMessage ?: it.toString())
             }
@@ -108,16 +113,21 @@ class KioskViewModel(
     /**
      * Switch to the kiosk with [newId] and display the active sign.
      */
+    @Synchronized
     fun switchToKiosk(newId: Int) {
+        kioskId = newId
+
+        // wait if a reconnect is pending
+        if (reconnectPending) {
+            return
+        }
+
         Log.i(TAG, "Switching to kiosk: $newId")
 
         // reset state
-        kioskId = newId
         kiosk.postValue(null)
         sign.postValue(null)
         connected.postValue(false)
-        errorMessage.postValue(null)
-        errorStacktrace.postValue(null)
 
         // TODO: shutdown signSubscription (no way to do it yet with the Kotlin clients)
         //       so we'll just ignore the events when this happens
@@ -132,8 +142,11 @@ class KioskViewModel(
             }
             error = {
                 Log.e(TAG, "Unable to fetch kiosk: $newId", it)
+
                 errorMessage.postValue(app.getString(R.string.error_kiosk_update))
                 errorStacktrace.postValue(it.localizedMessage ?: it.toString())
+
+                reconnect(RETRY_INTERVAL)
             }
             ignoreIf = { newId != kioskId }
         }
@@ -147,26 +160,39 @@ class KioskViewModel(
             kioskId = k.id
         })
         signSubscription = stream
-        connected.postValue(true)
 
         // process the responses
-        stream.responses.onNext = {
-            if (kiosk.value == k) {
-                Log.i(TAG, "Received updated sign: ${it.signId} from kiosk: ${k.id}")
-                fetchSign(it.signId, stream)
-            }
-        }
-        stream.responses.onCompleted = {
-            if (kiosk.value == k) {
-                Log.i(TAG, "Subscription terminated for kiosk: ${k.id}")
-                connected.postValue(false)
+        stream.start {
+            executor = MainThreadExecutor
+            onNext = {
+                if (kiosk.value == k) {
+                    Log.i(TAG, "Received updated sign: ${it.signId} from kiosk: ${k.id}")
 
-                // if this kiosk is still set, keep trying
-                subscribeToSigns(k)
+                    // reset state
+                    connected.postValue(true)
+                    errorMessage.postValue(null)
+                    errorStacktrace.postValue(null)
+
+                    fetchSign(it.signId, stream)
+                }
             }
-        }
-        stream.responses.onError = {
-            Log.i(TAG, "Error watching for sign updates on kiosk: ${k.id}", it)
+            onCompleted = {
+                if (kiosk.value == k) {
+                    Log.i(TAG, "Subscription terminated for kiosk: ${k.id}")
+
+                    reconnect()
+                }
+            }
+            onError = {
+                if (kiosk.value == k) {
+                    Log.i(TAG, "Error watching for sign updates on kiosk: ${k.id}", it)
+
+                    errorMessage.postValue(app.getString(R.string.error_kiosk_update))
+                    errorStacktrace.postValue(it.localizedMessage ?: it.toString())
+
+                    reconnect(RETRY_INTERVAL)
+                }
+            }
         }
     }
 
@@ -182,9 +208,10 @@ class KioskViewModel(
             success = {
                 Log.i(TAG, "Fetched sign with id: $signId")
 
-                if (!it.body.equals(sign.value)) {
+                // update sign body
+                if (it.body != sign.value) {
                     sign.postValue(it.body)
-                    val position = if (it.body.image != null && !it.body.image.isEmpty()) {
+                    val position = if (it.body.image != null && !it.body.image.isEmpty) {
                         TextPosition.BOTTOM
                     } else {
                         TextPosition.CENTER
@@ -194,10 +221,43 @@ class KioskViewModel(
             }
             error = {
                 Log.e(TAG, "Unable to getch sign: $signId")
+
                 errorMessage.postValue(app.getString(R.string.error_kiosk_sign_update))
                 errorStacktrace.postValue(it.localizedMessage ?: it.toString())
+
+                reconnect(RETRY_INTERVAL)
             }
             ignoreIf = { stream != signSubscription }
+        }
+    }
+
+    // retry helper for when the connection is terminated
+    @Synchronized
+    private fun reconnect(delay: Long = 0) {
+        Preconditions.checkState(!reconnectPending,
+                "Reconnection is pending. Illegal call to reconnect!")
+
+        Log.d(TAG, "Retrying (due to server disconnection or error)...")
+
+        // ensure UI state show disconnected status
+        connected.postValue(false)
+
+        // attempt to reconnect
+        reconnectPending = true
+        fun doConnect() {
+            reconnectPending = false
+            kioskId?.let { switchToKiosk(it) }
+        }
+
+        if (delay > 0) {
+            object : CountDownTimer(delay, delay) {
+                override fun onTick(millisUntilFinished: Long) {}
+                override fun onFinish() {
+                    doConnect()
+                }
+            }.start()
+        } else {
+            doConnect()
         }
     }
 
@@ -252,8 +312,8 @@ class KioskViewModel(
 
 /** A factory to create a [KioskViewModel] with it's dependencies. */
 class KioskViewModelFactory(
-    val app: Application,
-    val client: DisplayClient
+    private val app: Application,
+    private val client: DisplayClient
 ) : ViewModelProvider.Factory {
 
     @Suppress("UNCHECKED_CAST")
