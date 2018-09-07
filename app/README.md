@@ -1,8 +1,7 @@
 # Kiosk Android App
 
 The kiosk app runs on Android phones or an [Android Things](https://developer.android.com/things/)
-device with suitable display hardware, such as the NXP i.MX7D Starter Kit. (TODO: Android 
-Things version isn't yet complete).
+device with suitable display hardware, such as the NXP i.MX7D Starter Kit. 
 
 When you run the application if will try to register itself as a new kiosk. Once registered,
 you may use the kiosk API to send content to the device.
@@ -30,9 +29,42 @@ $ k create sign robot --text=robot --image="Android_Robot.png"
 $ k set sign <sign_id> for kiosk <kiosk_id>
 ```
 
+## Android Things
+
+You can install the "things" version of the app on a NXP i.MX7D Starter Kit. The installation process is
+the same. Connect the device and use adb or Android Studio to install the application.
+
+### Flashing
+
+The build used for demonstration purposes is available here and can be flashed on a device by:
+
+Before flashing, ensure that you have a recent version of the Android SDK installed and that you have the
+ANDROID_HOME environment variable set.
+
+1. Go to the Android Things Console and find the [available builds](https://partner.android.com/things/console#/kbmc8e/model/cg9c0h/build).
+2. Select the version to use (the latest is the first entry).
+3. Click the download link and download the "development" version.
+4. Connect the device to your machine and wait for it to power up.
+5. Reboot to the bootloader:
+      ```bash
+      $ adb reboot bootloader
+      ```
+6. Wait for the device to appear:
+      ```bash
+      $ fastboot devices
+      # ready when this command has a non-empty response>
+      ```
+7. Flash the device:
+      ```bash
+      $ unzip <image>.zip
+      $ ./flash-all.sh
+      ```
+
+The device will reboot when the process is complete and the kiosk app will load.
+
 ## Notes
 
-The app will rember the kiosk id that it's assigned after it has registed. If you stop the kiosk server
-this information will be lost and the kiosk app will show an error unless you re-register
-a new kiosk with the same id. You can "reset" the app by uninstalling and reinstalling the
-app, and we might add a button for it in the future!
+The app will remember the kiosk id that it's assigned after it has registered. If you stop the 
+kiosk server this information will be lost and the kiosk app will show an error unless you 
+re-register a new kiosk with the same id. You can "reset" the app by uninstalling and reinstalling 
+the app, and we might add a button for it in the future!
