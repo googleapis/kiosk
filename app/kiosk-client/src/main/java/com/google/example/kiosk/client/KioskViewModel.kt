@@ -24,6 +24,7 @@ import android.arch.lifecycle.ViewModelProvider
 import android.os.CountDownTimer
 import android.util.Log
 import android.view.View
+import android.widget.ImageView
 import com.google.common.base.Preconditions
 import com.google.kgax.grpc.CallResult
 import com.google.kgax.grpc.ServerStreamingCall
@@ -66,6 +67,9 @@ class KioskViewModel(
     /** The current sign to display */
     val sign = MutableLiveData<Sign>()
 
+    /** image scale type */
+    val scaleType = MutableLiveData<ImageView.ScaleType>()
+
     private var kioskId: Int? = null
     private var signSubscription: ServerStreamingCall<GetSignIdResponse>? = null
     private var reconnectPending = false
@@ -73,6 +77,14 @@ class KioskViewModel(
     init {
         connected.postValue(false)
         textPosition.postValue(TextPosition.CENTER)
+        scaleType.postValue(ImageView.ScaleType.CENTER_CROP)
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+
+        // ensure everything stops
+        stop(true)
     }
 
     /**
@@ -129,8 +141,8 @@ class KioskViewModel(
         sign.postValue(null)
         connected.postValue(false)
 
-        // TODO: shutdown signSubscription (no way to do it yet with the Kotlin clients)
-        //       so we'll just ignore the events when this happens
+        // shutdown sign update stream
+        stop()
 
         // switch
         client.getKiosk(GetKioskRequest {
@@ -152,6 +164,30 @@ class KioskViewModel(
         }
     }
 
+    @Synchronized
+    private fun stop(isTerminal: Boolean = false) {
+        if (isTerminal) {
+            kioskId = -1
+        }
+
+        // shutdown the stream
+        val oldStream = signSubscription
+        signSubscription = null
+        oldStream?.responses?.close()
+
+        Log.d(TAG, "Stopped kiosk subscription.")
+    }
+
+    /** Toggles the scale type of the image. */
+    fun toggleScaleType() {
+        val newType = when (scaleType.value) {
+            ImageView.ScaleType.CENTER_CROP -> ImageView.ScaleType.CENTER_INSIDE
+            ImageView.ScaleType.CENTER_INSIDE -> ImageView.ScaleType.FIT_CENTER
+            else -> ImageView.ScaleType.CENTER_CROP
+        }
+        scaleType.postValue(newType)
+    }
+
     private fun subscribeToSigns(k: Kiosk) {
         Log.i(TAG, "Subscribing to kiosk sign updates for kiosk: ${k.id}")
 
@@ -165,34 +201,29 @@ class KioskViewModel(
         stream.start {
             executor = MainThreadExecutor
             onNext = {
-                if (kiosk.value == k) {
-                    Log.i(TAG, "Received updated sign: ${it.signId} from kiosk: ${k.id}")
+                Log.i(TAG, "Received updated sign: ${it.signId} from kiosk: ${k.id}")
 
-                    // reset state
-                    connected.postValue(true)
-                    errorMessage.postValue(null)
-                    errorStacktrace.postValue(null)
+                // reset state
+                connected.postValue(true)
+                errorMessage.postValue(null)
+                errorStacktrace.postValue(null)
 
-                    fetchSign(it.signId, stream)
-                }
+                fetchSign(it.signId, stream)
             }
             onCompleted = {
-                if (kiosk.value == k) {
-                    Log.i(TAG, "Subscription terminated for kiosk: ${k.id}")
+                Log.i(TAG, "Subscription terminated for kiosk: ${k.id}")
 
-                    reconnect()
-                }
+                reconnect()
             }
             onError = {
-                if (kiosk.value == k) {
-                    Log.i(TAG, "Error watching for sign updates on kiosk: ${k.id}", it)
+                Log.i(TAG, "Error watching for sign updates on kiosk: ${k.id}", it)
 
-                    errorMessage.postValue(app.getString(R.string.error_kiosk_update))
-                    errorStacktrace.postValue(it.localizedMessage ?: it.toString())
+                errorMessage.postValue(app.getString(R.string.error_kiosk_update))
+                errorStacktrace.postValue(it.localizedMessage ?: it.toString())
 
-                    reconnect(RETRY_INTERVAL)
-                }
+                reconnect(RETRY_INTERVAL)
             }
+            ignoreIf = { stream != signSubscription }
         }
     }
 
@@ -287,12 +318,14 @@ class KioskViewModel(
             connected: Boolean?,
             errorMessage: String?,
             sign: Sign?,
-            condition: Boolean? = true
+            condition: Boolean? = true,
+            isText: Boolean = false
         ) =
                 if (connected != null && connected &&
                         errorMessage == null &&
                         sign != null &&
-                        condition != null && condition) {
+                        condition != null && condition &&
+                        ((isText && sign.text?.length ?: 0 > 0) || (!isText))) {
                     View.VISIBLE
                 } else {
                     View.GONE
@@ -307,6 +340,9 @@ class KioskViewModel(
                 } else {
                     View.GONE
                 }
+
+        @JvmStatic
+        fun scaleType(type: ImageView.ScaleType?) = type ?: ImageView.ScaleType.CENTER_CROP
     }
 }
 

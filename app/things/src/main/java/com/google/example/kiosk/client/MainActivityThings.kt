@@ -35,7 +35,7 @@ class MainActivityThings : MainActivity() {
         super.onCreate(savedInstanceState)
 
         // show the available buttons and active them
-        Sensors.toggleLeds(red = true, green = false, blue = false)
+        Sensors.toggleLeds(red = true, green = false, blue = true)
         Sensors.getButtonDrivers().let { drivers ->
             drivers.a.register()
             drivers.b.register()
@@ -82,10 +82,15 @@ class MainActivityThings : MainActivity() {
 
         // check for the "reset" sequence of button presses
         if (!down && buttons.isResetSequence()) {
-            Log.i(TAG, "Resetting kiosk (reset button sequence)..." + System.currentTimeMillis())
+            Log.i(TAG, "Resetting kiosk (reset button sequence)...")
 
             buttons.clearSequence()
             registerKiosk()
+        }
+
+        // check for scale adjustment
+        if (!down && keyCode == KeyEvent.KEYCODE_A) {
+            model.toggleScaleType()
         }
     }
 
@@ -112,13 +117,13 @@ private class ButtonState {
 
     /**
      * Tests if the last sequence of key events is the "reset" signal
-     * (3 A's in a row within a short time period)
+     * (3 C's in a row within a short time period)
      */
     fun isResetSequence(): Boolean {
         val now = System.currentTimeMillis()
         return sequence
                 .filter { now - it.time < 4_000 }
-                .joinToString("") { it.button } == "aaa"
+                .joinToString("") { it.button } == "ccc"
     }
 
     /** Forgets all previous button presses */

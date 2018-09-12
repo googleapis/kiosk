@@ -30,6 +30,10 @@ import kotlinx.android.synthetic.main.activity_settings.*
  */
 class SettingsActivity : AppCompatActivity() {
 
+    companion object {
+        const val EXTRA_RETURN_TO_ACTIVITY = "return-activity"
+    }
+
     private lateinit var model: KioskSettingsViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,7 +64,8 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun goToMainActivity() {
-        startActivity(Intent(this, MainActivity::class.java))
+        val clazz = intent?.extras?.getSerializable(EXTRA_RETURN_TO_ACTIVITY) as? Class<*>
+        startActivity(Intent(this, clazz ?: MainActivity::class.java))
         finish()
     }
 }

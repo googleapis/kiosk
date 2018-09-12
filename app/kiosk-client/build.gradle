@@ -43,8 +43,19 @@ android {
         enabled = true
     }
     sourceSets {
-        main.proto.srcDirs += "${projectDir}/../../protos"
+        main {
+            proto {
+                srcDir "${projectDir}/../../protos"
+                exclude "api-common-protos"
+            }
+        }
         test.java.srcDirs += "${project.buildDir}/generated/source/protoTest/debugUnitTest/client"
+    }
+    configurations.all {
+        resolutionStrategy.force "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
+    }
+    testOptions {
+        unitTests.returnDefaultValues = true
     }
 }
 
@@ -65,11 +76,13 @@ dependencies {
     api "android.arch.lifecycle:extensions:$lifecycle_version"
 
     // temporary
-    api 'com.github.googleapis.gax-kotlin:kgax-grpc:5b047e1'
-    compileOnly 'com.github.googleapis:gapic-generator-kotlin:cbaa366'
+    api 'com.github.googleapis.gax-kotlin:kgax-grpc:ad942b1'
+    compileOnly 'com.github.googleapis:gapic-generator-kotlin:42fdea4'
 
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version"
     testImplementation 'com.nhaarman:mockito-kotlin:1.6.0'
+    testImplementation "com.google.truth:truth:0.42"
+    testImplementation "android.arch.core:core-testing:$lifecycle_version"
 
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
@@ -87,7 +100,7 @@ protobuf {
             artifact = 'com.google.protobuf:protoc-gen-javalite:3.0.0'
         }
         client {
-            artifact = 'com.github.googleapis:gapic-generator-kotlin:cbaa366:core@jar'
+            artifact = 'com.github.googleapis:gapic-generator-kotlin:42fdea4:core@jar'
         }
     }
     generateProtoTasks {

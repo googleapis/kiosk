@@ -22,4 +22,9 @@
         android:icon="@drawable/baseline_settings_white_24"
         android:title="@string/settings"
         app:showAsAction="always" />
+    <item
+        android:id="@+id/action_reset_kiosk"
+        android:enabled="true"
+        android:title="@string/reset_kiosk"
+        app:showAsAction="never" />
 </menu>
