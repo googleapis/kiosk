@@ -23,6 +23,10 @@ import android.view.KeyEvent
 import kiosk.Kiosk
 import kiosk.Sign
 import kotlin.properties.Delegates
+import com.google.android.things.update.UpdatePolicy
+import com.google.android.things.update.UpdateManager
+import java.util.concurrent.TimeUnit
+
 
 private const val TAG = "Main"
 
@@ -33,6 +37,12 @@ class MainActivityThings : MainActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val manager = UpdateManager.getInstance()
+        manager.setPolicy(UpdatePolicy.Builder()
+                .setPolicy(UpdatePolicy.POLICY_APPLY_AND_REBOOT)
+                .setApplyDeadline(1L, TimeUnit.DAYS)
+                .build())
 
         // show the available buttons and active them
         Sensors.toggleLeds(red = true, green = false, blue = true)
