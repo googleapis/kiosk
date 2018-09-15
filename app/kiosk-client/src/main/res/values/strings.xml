@@ -24,6 +24,7 @@
     <string name="error_kiosk_sign_update">Failed to update sign</string>
 
     <string name="settings">Settings</string>
+    <string name="reset_kiosk">Reset Kiosk</string>
 
     <string name="hint_server_hostname">Kiosk Server Hostname</string>
     <string name="hint_port">Port</string>

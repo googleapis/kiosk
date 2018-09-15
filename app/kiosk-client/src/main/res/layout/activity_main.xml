@@ -92,7 +92,7 @@
                 android:id="@+id/signImage"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:scaleType="centerCrop"
+                android:scaleType="@{Vis.scaleType(model.scaleType)}"
                 android:background="@color/colorWhite"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintLeft_toLeftOf="parent"
@@ -141,7 +141,7 @@
 
             <!-- Sign text (when image is present) -->
             <LinearLayout
-                android:visibility="@{Vis.showSign(model.connected, model.errorMessage, model.sign, model.textPosition == TextPosition.BOTTOM)}"
+                android:visibility="@{Vis.showSign(model.connected, model.errorMessage, model.sign, model.textPosition == TextPosition.BOTTOM, true)}"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"

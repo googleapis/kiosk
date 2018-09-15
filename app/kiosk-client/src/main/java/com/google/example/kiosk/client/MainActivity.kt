@@ -111,9 +111,17 @@ open class MainActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem?): Boolean {
         // open settings activity on click
-        if (item?.itemId == R.id.action_settings) {
-            startActivity(Intent(this, SettingsActivity::class.java))
-            finish()
+        when (item?.itemId) {
+            R.id.action_settings -> {
+                val intent = Intent(this, SettingsActivity::class.java)
+                intent.putExtra(SettingsActivity.EXTRA_RETURN_TO_ACTIVITY, this::class.java)
+                startActivity(intent)
+                finish()
+            }
+            R.id.action_reset_kiosk -> {
+                Log.i(TAG, "Resetting kiosk...")
+                registerKiosk()
+            }
         }
         return super.onOptionsItemSelected(item)
     }
@@ -175,6 +183,7 @@ open class MainActivity : AppCompatActivity() {
         super.onDestroy()
 
         // shutdown channel
+        Log.d(TAG, "Shutting down client")
         ShutdownTask(displayClient).execute()
     }
 

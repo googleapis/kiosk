@@ -34,6 +34,9 @@ $ k set sign <sign_id> for kiosk <kiosk_id>
 You can install the "things" version of the app on a NXP i.MX7D Starter Kit. The installation process is
 the same. Connect the device and use adb or Android Studio to install the application.
 
+The things version of the app is similar to the mobile version. You can change how the image is scaled by
+touching the "A" button or reset the kiosk by pressing the "C" button three times in a row. Oh, and it beeps!
+
 ### Flashing
 
 The build used for demonstration purposes is available here and can be flashed on a device by:
@@ -60,11 +63,29 @@ ANDROID_HOME environment variable set.
       $ ./flash-all.sh
       ```
 
-The device will reboot when the process is complete and the kiosk app will load.
+The device will reboot when the process is complete and the kiosk app will load. After flashing,
+it's a good idea to set up the Wifi on the device as described in the next section.
+
+### Wifi
+
+There is no UI for setting up the Wifi connection on the device. To connect it to a network plug 
+the device into a USB port and run the following (this only needs to be done once):
+
+```bash
+$ adb connect <address_of_device>
+$ adb shell
+$ am am startservice \
+    -n com.google.wifisetup/.WifiSetupService \
+    -a WifiSetupService.Connect \
+    -e ssid <ssid_of_network> \
+    -e passphrase <password>
+```
+
+More information is [available here](https://developer.android.com/things/hardware/wifi-adb).
 
 ## Notes
 
 The app will remember the kiosk id that it's assigned after it has registered. If you stop the 
 kiosk server this information will be lost and the kiosk app will show an error unless you 
-re-register a new kiosk with the same id. You can "reset" the app by uninstalling and reinstalling 
-the app, and we might add a button for it in the future!
+re-register a new kiosk with the same id. You can "reset" the app by pressing the "Reset Kiosk"
+button from the overflow menu at the top right hand corner of the screen.

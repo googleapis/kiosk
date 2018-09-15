@@ -17,18 +17,28 @@
 package com.google.example.kiosk.client
 
 import android.os.Handler
-import java.util.concurrent.Executor
 import android.os.Looper
+import android.support.annotation.VisibleForTesting
 import com.google.kgax.grpc.Callback
 import com.google.kgax.grpc.FutureCall
 import com.google.kgax.grpc.on
+import java.util.concurrent.Executor
 
-/** Executor for the main thread */
+/** Executor for the main thread. */
 object MainThreadExecutor : Executor {
     private val handler = Handler(Looper.getMainLooper())
 
+    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
+    var delegate: Executor? = null
+
     override fun execute(command: Runnable) {
-        handler.post(command)
+        delegate.let {
+            if (it != null) {
+                it.execute(command)
+            } else {
+                handler.post(command)
+            }
+        }
     }
 }
 
