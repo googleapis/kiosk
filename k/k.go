@@ -27,6 +27,7 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/metadata"
 
 	"github.com/docopt/docopt-go"
 
@@ -34,7 +35,7 @@ import (
 )
 
 const (
-	useSSL         = false
+	useSSL = false
 )
 
 func Verify(err error) bool {
@@ -103,26 +104,37 @@ func main() {
 	address := host + ":" + port
 	fmt.Printf("FROM %s ", address)
 
+	// Create context to use for API calls, including any authorization settings in the environment.
+	ctx := context.Background()
+	apikey := os.Getenv("KIOSK_APIKEY")
+	if apikey != "" {
+		log.Printf("Using API key: %s", apikey)
+		ctx = metadata.NewOutgoingContext(ctx, metadata.Pairs("x-api-key", apikey))
+	}
+	token := os.Getenv("KIOSK_TOKEN")
+	if token != "" {
+		log.Printf("Using authentication token: %s", token)
+		ctx = metadata.NewOutgoingContext(ctx, metadata.Pairs("Authorization", fmt.Sprintf("Bearer %s", token)))
+	}
+
 	// Set up a connection to the server.
 	var conn *grpc.ClientConn
 	var err error
 	if !useSSL {
-                conn, err = grpc.Dial(host + ":" + port, grpc.WithInsecure())
+		conn, err = grpc.Dial(host+":"+port, grpc.WithInsecure())
 	} else {
-		conn, err = grpc.Dial(host + ":" + port,
+		conn, err = grpc.Dial(host+":"+port,
 			grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{
 				// remove the following line if the server certificate is signed by a certificate authority
 				InsecureSkipVerify: true,
 			})))
 	}
-
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
 	defer conn.Close()
 	c := pb.NewDisplayClient(conn)
 
-	ctx := context.TODO()
 	if Match(args, "set sign <sign_id> for kiosk <kiosk_id>") {
 		sign_id, err := args.Int("<sign_id>")
 		kiosk_id, err := args.Int("<kiosk_id>")
