@@ -40,4 +40,10 @@
         \n$ set sign <sign_id> for kiosk %s
         ]]>
     </string>
+    <string name="heading_kiosk_server">Select Kiosk Server</string>
+    <string name="heading_manual_configuration">Manual Configuration</string>
+
+    <string-array name="known_servers">
+        <item>10.0.2.2:8080</item>
+    </string-array>
 </resources>
