@@ -44,6 +44,9 @@
     <string name="heading_manual_configuration">Manual Configuration</string>
 
     <string-array name="known_servers">
-        <item>10.0.2.2:8080</item>
+        <item>Manual</item>
+        <item>Kiosk (Server):104.198.96.240:8080</item>
+        <item>Endpoints (Proxy):104.198.96.240:80</item>
+        <item>Emulator:10.0.2.2:8080</item>
     </string-array>
 </resources>

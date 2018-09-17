@@ -23,11 +23,15 @@ import android.databinding.DataBindingUtil
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
+import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
+import android.widget.TextView
 import com.google.example.kiosk.client.databinding.ActivitySettingsBinding
 import kotlinx.android.synthetic.main.activity_settings.*
+
 
 private const val TAG = "Setting"
 
@@ -57,22 +61,30 @@ class SettingsActivity : AppCompatActivity() {
         setSupportActionBar(toolbar)
 
         // add options for known hosts
-        val hostAdapter = ArrayAdapter.createFromResource(this,
-                R.array.known_servers, android.R.layout.simple_spinner_item)
-        hostAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        val hostAdapter = HostArrayAdapter(this, resources.getStringArray(R.array.known_servers))
         if (hostAdapter.isEmpty) {
             serverAddressSpinner.visibility = View.GONE
         } else {
             serverAddressSpinner.adapter = hostAdapter
             serverAddressSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
 
-                override fun onItemSelected(parent: AdapterView<*>, view: View?, pos: Int, id: Long) {
+                override fun onItemSelected(
+                        parent: AdapterView<*>,
+                        view: View?,
+                        pos: Int,
+                        id: Long
+                ) {
                     val newValue = serverAddressSpinner.selectedItem.toString().split(":")
-                    try {
-                        model.host.postValue(newValue[0])
-                        model.port.postValue(Integer.parseInt(newValue[1]))
-                    } catch (ex: Exception) {
-                        Log.e(TAG, "Unable to set known host")
+                    if (newValue.isNotEmpty()) {
+                        try {
+                            Log.i("XXX", "FOO $newValue")
+                            // format is "label:host:port"
+                            val port = Integer.parseInt(newValue[2])
+                            model.host.postValue(newValue[1])
+                            model.port.postValue(port)
+                        } catch (ex: Exception) {
+                            Log.e(TAG, "Unable to set known host")
+                        }
                     }
                 }
 
@@ -98,4 +110,26 @@ class SettingsActivity : AppCompatActivity() {
         startActivity(Intent(this, clazz ?: MainActivity::class.java))
         finish()
     }
+}
+
+// array adapter for selecting the server address
+private class HostArrayAdapter(
+        context: Context,
+        list: Array<String>
+) : ArrayAdapter<String>(context, android.R.layout.simple_spinner_item, list) {
+
+    override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+        val view = (convertView ?: LayoutInflater.from(context).inflate(
+                android.R.layout.simple_spinner_item, parent, false)) as TextView
+        view.text = getItem(position)!!.split(":")[0]
+        return view
+    }
+
+    override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View {
+        val view = (convertView ?: LayoutInflater.from(context).inflate(
+                android.R.layout.simple_spinner_dropdown_item, parent, false)) as TextView
+        view.text = getItem(position)!!.replaceFirst(":", " ")
+        return view
+    }
+
 }
