@@ -77,7 +77,6 @@ class SettingsActivity : AppCompatActivity() {
                     val newValue = serverAddressSpinner.selectedItem.toString().split(":")
                     if (newValue.isNotEmpty()) {
                         try {
-                            Log.i("XXX", "FOO $newValue")
                             // format is "label:host:port"
                             val port = Integer.parseInt(newValue[2])
                             model.host.postValue(newValue[1])
