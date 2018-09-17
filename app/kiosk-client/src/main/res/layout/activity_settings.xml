@@ -55,6 +55,25 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent">
 
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="@dimen/padding"
+                    android:text="@string/heading_kiosk_server"
+                    android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"/>
+
+                <Spinner
+                    android:id="@+id/serverAddressSpinner"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"/>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="@dimen/padding"
+                    android:text="@string/heading_manual_configuration"
+                    android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"/>
+
                 <android.support.design.widget.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

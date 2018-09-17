@@ -276,8 +276,12 @@ class KioskViewModel(
         // attempt to reconnect
         reconnectPending = true
         fun doConnect() {
-            reconnectPending = false
-            kioskId?.let { switchToKiosk(it) }
+            try {
+                reconnectPending = false
+                kioskId?.let { switchToKiosk(it) }
+            } catch (ex: Exception) {
+                Log.d(TAG, "reconnect attempt failed", ex)
+            }
         }
 
         if (delay > 0) {
