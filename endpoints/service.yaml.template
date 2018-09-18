@@ -1,0 +1,8 @@
+type: google.api.Service
+config_version: 3
+
+name: ${API_NAME}.endpoints.${PROJECT_ID}.cloud.goog
+
+title: Kiosk gRPC API
+apis:
+- name: kiosk.Display
