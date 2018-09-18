@@ -33,9 +33,9 @@ protoc protos/kiosk.proto \
   --descriptor_set_out=generated/kiosk_descriptor.pb \
   --go_out=plugins=grpc:generated
 
-protoc protos/kiosk_with_http.proto \
+protoc endpoints/kiosk_with_http.proto \
   -I protos/api-common-protos \
-  -I protos \
+  -I endpoints \
   --include_imports \
   --include_source_info \
   --descriptor_set_out=generated/kiosk_with_http_descriptor.pb
