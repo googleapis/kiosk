@@ -23,11 +23,14 @@
 
 PROJECT=$1
 INSTANCE=$2
+STARTUP_SCRIPT_URL=${3:-https://raw.githubusercontent.com/googleapis/kiosk/master/gce/STARTUP.sh}
 
 if [ -z "$PROJECT" ] || [ -z "$INSTANCE" ]; then
-    echo "usage: $0 <project> <instance name>"
+    echo "usage: $0 <project> <instance name> [<startup script URL>]"
     exit
 fi
+
+set -e
 
 gcloud compute --project=$PROJECT \
 	instances create $INSTANCE \
@@ -35,12 +38,12 @@ gcloud compute --project=$PROJECT \
 	--machine-type=g1-small \
 	--subnet=default \
 	--network-tier=PREMIUM \
-    	--metadata startup-script-url=https://raw.githubusercontent.com/googleapis/kiosk/master/gce/STARTUP.sh \
+	--metadata startup-script-url=${STARTUP_SCRIPT_URL} \
 	--maintenance-policy=MIGRATE \
 	--scopes=https://www.googleapis.com/auth/cloud-platform \
 	--tags=http-server \
-	--image=ubuntu-1604-lts-drawfork-v20180810 \
-	--image-project=eip-images \
+	--image=ubuntu-1604-xenial-v20180912 \
+	--image-project=ubuntu-os-cloud \
 	--boot-disk-size=200GB \
 	--boot-disk-type=pd-standard
 	
@@ -50,7 +53,7 @@ gcloud compute --project=$PROJECT \
 	--priority=1000 \
 	--network=default \
 	--action=ALLOW \
-	--rules=tcp:8080 \
+	--rules=tcp:8080-8083 \
 	--source-ranges=0.0.0.0/0 \
 	--target-tags=http-server
 
