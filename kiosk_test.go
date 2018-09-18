@@ -168,4 +168,22 @@ func TestKiosk(t *testing.T) {
 		assertNoError(t, err)
 		assertEqual(t, response.SignId, sign2_id)
 	}
+	// Delete all kiosks.
+	{
+		response, err := c.ListKiosks(ctx, &empty.Empty{})
+		assertNoError(t, err)
+		for _, k := range response.Kiosks {
+			_, err := c.DeleteKiosk(ctx, &pb.DeleteKioskRequest{Id: int32(k.Id)})
+			assertNoError(t, err)
+		}
+	}
+	// Delete all signs.
+	{
+		response, err := c.ListSigns(ctx, &empty.Empty{})
+		assertNoError(t, err)
+		for _, s := range response.Signs {
+			_, err := c.DeleteSign(ctx, &pb.DeleteSignRequest{Id: int32(s.Id)})
+			assertNoError(t, err)
+		}
+	}
 }
