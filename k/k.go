@@ -38,6 +38,13 @@ const (
 	useSSL = false
 )
 
+// before printing a sign, truncate its image
+func truncate(sign *pb.Sign) {
+	if len(sign.Image) > 16 {
+		sign.Image = sign.Image[0:16]
+	}
+}
+
 func Verify(err error) bool {
 	if err != nil {
 		log.Printf("%+v", err)
@@ -187,8 +194,8 @@ func main() {
 	} else if Match(args, "list kiosks") {
 		response, err := c.ListKiosks(ctx, &empty.Empty{})
 		if Verify(err) {
-			for _, k := range response.Kiosks {
-				fmt.Printf("%+v\n", k)
+			for _, kiosk := range response.Kiosks {
+				fmt.Printf("%+v\n", kiosk)
 			}
 		}
 	} else if Match(args, "get kiosk <kiosk_id>") {
@@ -199,9 +206,9 @@ func main() {
 		}
 	} else if Match(args, "delete kiosk <kiosk_id>") {
 		id, err := args.Int("<kiosk_id>")
-		kiosk, err := c.DeleteKiosk(ctx, &pb.DeleteKioskRequest{Id: int32(id)})
+		_, err = c.DeleteKiosk(ctx, &pb.DeleteKioskRequest{Id: int32(id)})
 		if Verify(err) {
-			fmt.Printf("%+v\n", kiosk)
+			fmt.Printf("deleted\n")
 		}
 	} else if Match(args, "create sign") {
 		sign := &pb.Sign{
@@ -222,26 +229,29 @@ func main() {
 		}
 		newsign, err := c.CreateSign(ctx, sign)
 		if Verify(err) {
+			truncate(newsign)
 			fmt.Printf("%+v\n", newsign)
 		}
 	} else if Match(args, "list signs") {
 		response, err := c.ListSigns(ctx, &empty.Empty{})
 		if Verify(err) {
-			for _, k := range response.Signs {
-				fmt.Printf("%+v\n", k)
+			for _, sign := range response.Signs {
+				truncate(sign)
+				fmt.Printf("%+v\n", sign)
 			}
 		}
 	} else if Match(args, "get sign") {
 		id, err := args.Int("<sign_id>")
 		sign, err := c.GetSign(ctx, &pb.GetSignRequest{Id: int32(id)})
 		if Verify(err) {
+			truncate(sign)
 			fmt.Printf("%+v\n", sign)
 		}
 	} else if Match(args, "delete sign") {
 		id, err := args.Int("<sign_id>")
-		sign, err := c.DeleteSign(ctx, &pb.DeleteSignRequest{Id: int32(id)})
+		_, err = c.DeleteSign(ctx, &pb.DeleteSignRequest{Id: int32(id)})
 		if Verify(err) {
-			fmt.Printf("%+v\n", sign)
+			fmt.Printf("deleted\n")
 		}
 	}
 }
