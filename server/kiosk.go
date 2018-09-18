@@ -90,7 +90,9 @@ func (s *DisplayServer) DeleteKiosk(c context.Context, r *pb.DeleteKioskRequest)
 	i := r.Id
 	if s.kiosks[i] != nil {
 		delete(s.kiosks, i)
-		s.kiosks[i] = nil
+		if len(s.kiosks) == 0 {
+			s.nextKioskId = 1
+		}
 		return &google_protobuf.Empty{}, nil
 	} else {
 		return nil, errors.New("invalid kiosk id")
@@ -139,6 +141,9 @@ func (s *DisplayServer) DeleteSign(c context.Context, r *pb.DeleteSignRequest) (
 	i := r.Id
 	if s.signs[i] != nil {
 		delete(s.signs, i)
+		if len(s.signs) == 0 {
+			s.nextSignId = 1
+		}
 		return &google_protobuf.Empty{}, nil
 	} else {
 		return nil, errors.New("invalid sign id")
