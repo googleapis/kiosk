@@ -43,6 +43,7 @@ import kiosk.DisplayClient
 import kiosk.ScreenSize
 import kiosk.Sign
 import kotlinx.android.synthetic.main.activity_main.*
+import java.util.concurrent.TimeUnit
 
 private const val TAG = "Main"
 
@@ -188,6 +189,8 @@ open class MainActivity : AppCompatActivity() {
     }
 
     private class ShutdownTask(private val client: DisplayClient) : AsyncTask<Unit, Unit, Unit>() {
-        override fun doInBackground(vararg args: Unit?) = client.shutdownChannel()
+        override fun doInBackground(vararg args: Unit?) {
+            client.channel.shutdownNow().awaitTermination(5, TimeUnit.SECONDS)
+        }
     }
 }
