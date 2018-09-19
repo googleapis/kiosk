@@ -32,7 +32,6 @@ import android.widget.TextView
 import com.google.example.kiosk.client.databinding.ActivitySettingsBinding
 import kotlinx.android.synthetic.main.activity_settings.*
 
-
 private const val TAG = "Setting"
 
 /**
@@ -69,10 +68,10 @@ class SettingsActivity : AppCompatActivity() {
             serverAddressSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
 
                 override fun onItemSelected(
-                        parent: AdapterView<*>,
-                        view: View?,
-                        pos: Int,
-                        id: Long
+                    parent: AdapterView<*>,
+                    view: View?,
+                    pos: Int,
+                    id: Long
                 ) {
                     val newValue = serverAddressSpinner.selectedItem.toString().split(":")
                     if (newValue.isNotEmpty()) {
@@ -113,8 +112,8 @@ class SettingsActivity : AppCompatActivity() {
 
 // array adapter for selecting the server address
 private class HostArrayAdapter(
-        context: Context,
-        list: Array<String>
+    context: Context,
+    list: Array<String>
 ) : ArrayAdapter<String>(context, android.R.layout.simple_spinner_item, list) {
 
     override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
@@ -130,5 +129,4 @@ private class HostArrayAdapter(
         view.text = getItem(position)!!.replaceFirst(":", " ")
         return view
     }
-
 }

@@ -45,8 +45,8 @@
 
     <string-array name="known_servers">
         <item>Manual</item>
-        <item>Kiosk (Server):104.198.96.240:8080</item>
-        <item>Endpoints (Proxy):104.198.96.240:80</item>
+        <item>Kiosk (Server):35.199.155.197:8080</item>
+        <item>Endpoints (Proxy):35.199.155.197:8082</item>
         <item>Emulator:10.0.2.2:8080</item>
     </string-array>
 </resources>
