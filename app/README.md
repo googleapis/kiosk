@@ -44,7 +44,7 @@ The build used for demonstration purposes is available here and can be flashed o
 Before flashing, ensure that you have a recent version of the Android SDK installed and that you have the
 ANDROID_HOME environment variable set.
 
-1. Go to the Android Things Console and find the [available builds](https://partner.android.com/things/console#/kbmc8e/model/cg9c0h/build).
+1. Go to the Android Things Console and find the [available builds](https://partner.android.com/things/console/#/kbmc8e/model/rouoar/build).
 2. Select the version to use (the latest is the first entry).
 3. Click the download link and download the "development" version.
 4. Connect the device to your machine and wait for it to power up.
@@ -72,9 +72,8 @@ There is no UI for setting up the Wifi connection on the device. To connect it t
 the device into a USB port and run the following (this only needs to be done once):
 
 ```bash
-$ adb connect <address_of_device>
 $ adb shell
-$ am am startservice \
+$ am startservice \
     -n com.google.wifisetup/.WifiSetupService \
     -a WifiSetupService.Connect \
     -e ssid <ssid_of_network> \

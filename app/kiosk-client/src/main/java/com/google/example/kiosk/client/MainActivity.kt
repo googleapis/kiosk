@@ -38,7 +38,7 @@ import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.example.kiosk.client.databinding.ActivityMainBinding
 import com.google.type.LatLng
-import io.grpc.okhttp.OkHttpChannelBuilder
+import io.grpc.android.AndroidChannelBuilder
 import kiosk.DisplayClient
 import kiosk.ScreenSize
 import kiosk.Sign
@@ -75,17 +75,18 @@ open class MainActivity : AppCompatActivity() {
         // create client to access the kiosk API
         val host = preferences.getString(PREF_HOST, null) ?: PREF_HOST_DEFAULT
         val port = preferences.getInt(PREF_PORT, PREF_PORT_DEFAULT)
-        val channel = OkHttpChannelBuilder.forAddress(host, port)
-                .usePlaintext()
-                .keepAliveWithoutCalls(true)
-                .build()
+        val channel = AndroidChannelBuilder.forAddress(host, port)
+            .context(applicationContext)
+            .usePlaintext()
+            .build()
         displayClient = DisplayClient.fromCredentials(channel = channel)
 
         // wire up the UI
         val modelFactory = KioskViewModelFactory(application, displayClient)
         model = ViewModelProviders.of(this, modelFactory).get(KioskViewModel::class.java)
         val binding: ActivityMainBinding = DataBindingUtil.setContentView(
-                this, R.layout.activity_main)
+            this, R.layout.activity_main
+        )
         binding.setLifecycleOwner(this)
         binding.model = model
         setSupportActionBar(toolbar)
@@ -134,8 +135,11 @@ open class MainActivity : AppCompatActivity() {
      */
     protected fun registerKiosk(id: Int = -1) {
         // register this kiosk after getting the device location
-        if (ContextCompat.checkSelfPermission(applicationContext,
-                        ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(
+                applicationContext,
+                ACCESS_COARSE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
             locationClient.lastLocation.addOnSuccessListener { registerKiosk(id, it) }
         } else {
             registerKiosk(id, null)
@@ -146,8 +150,8 @@ open class MainActivity : AppCompatActivity() {
         if (id < 0) {
             // ensure no old id is left
             preferences.edit()
-                    .remove(PREF_KIOSK_ID)
-                    .apply()
+                .remove(PREF_KIOSK_ID)
+                .apply()
 
             // get more info about the device
             val displayMetrics = DisplayMetrics()
@@ -167,8 +171,8 @@ open class MainActivity : AppCompatActivity() {
 
                 // save id
                 preferences.edit()
-                        .putInt(PREF_KIOSK_ID, it.body.id)
-                        .apply()
+                    .putInt(PREF_KIOSK_ID, it.body.id)
+                    .apply()
 
                 // active the kiosk to show the active sign
                 kioskId = it.body.id
