@@ -21,8 +21,18 @@ protoc ../protos/kiosk.proto \
   --include_imports \
   --include_source_info \
   --descriptor_set_out=./kiosk_descriptor.pb \
-  --swift_out=Sources \
-  --swiftgrpc_out=Sources
+  --swift_out=Sources/k-swift \
+  --swiftgrpc_out=Sources/k-swift
+
+protoc ../protos/kiosk.proto \
+  ../protos/api-common-protos/google/type/latlng.proto  \
+  -I ../protos/api-common-protos \
+  -I ../protos \
+  --include_imports \
+  --include_source_info \
+  --descriptor_set_out=./kiosk_descriptor.pb \
+  --swift_out=Sources/kiosk-server-swift \
+  --swiftgrpc_out=Sources/kiosk-server-swift
 
 # move Swift files to the Sources directory
 #find googleapis -name "*.swift" -exec mv {} Sources \;

@@ -31,5 +31,12 @@ let package = Package(
               "SwiftProtobuf",
               "Commander",
             ],
-	    path: "Sources")
+	    path: "Sources/k-swift"),
+    .target(name: "kiosk-server-swift",
+            dependencies: [
+              "SwiftGRPC",
+              "SwiftProtobuf",
+              "Commander",
+            ],
+	    path: "Sources/kiosk-server-swift")
   ])

@@ -7,6 +7,7 @@ endif
 all:
 	swift build $(CFLAGS) -c release
 	cp .build/release/k-swift .
+	cp .build/release/kiosk-server-swift .
 
 clean :
 	rm -rf Packages googleapis .build
