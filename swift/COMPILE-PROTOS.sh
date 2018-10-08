@@ -27,7 +27,7 @@ protoc ../protos/kiosk.proto \
   --swiftgrpc_out=Sources/generated \
 
 # move Swift files to the Sources directory
-rm -rf Sources/k-swift/generated
-cp -r Sources/generated Sources/k-swift
+rm -rf Sources/kiosk-tool-swift/generated
+cp -r Sources/generated Sources/kiosk-tool-swift
 rm -rf Sources/kiosk-server-swift/generated
 cp -r Sources/generated Sources/kiosk-server-swift
