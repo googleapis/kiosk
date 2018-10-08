@@ -14,15 +14,7 @@ if [ ! -d "../protos/api-common-protos" ]; then
   mv api-common-protos-master ../protos/api-common-protos
 fi
 
-protoc ../protos/kiosk.proto \
-  ../protos/api-common-protos/google/type/latlng.proto  \
-  -I ../protos/api-common-protos \
-  -I ../protos \
-  --include_imports \
-  --include_source_info \
-  --descriptor_set_out=./kiosk_descriptor.pb \
-  --swift_out=Sources/k-swift \
-  --swiftgrpc_out=Sources/k-swift
+mkdir -p Sources/generated
 
 protoc ../protos/kiosk.proto \
   ../protos/api-common-protos/google/type/latlng.proto  \
@@ -31,9 +23,11 @@ protoc ../protos/kiosk.proto \
   --include_imports \
   --include_source_info \
   --descriptor_set_out=./kiosk_descriptor.pb \
-  --swift_out=Sources/kiosk-server-swift \
-  --swiftgrpc_out=Sources/kiosk-server-swift
+  --swift_out=Sources/generated \
+  --swiftgrpc_out=Sources/generated \
 
 # move Swift files to the Sources directory
-#find googleapis -name "*.swift" -exec mv {} Sources \;
-
+rm -rf Sources/k-swift/generated
+cp -r Sources/generated Sources/k-swift
+rm -rf Sources/kiosk-server-swift/generated
+cp -r Sources/generated Sources/kiosk-server-swift

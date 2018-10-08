@@ -16,24 +16,22 @@
 
 import Dispatch
 import Foundation
-import SwiftGRPC
 import SwiftProtobuf
+import SwiftGRPC
 
 class KioskProvider : Kiosk_DisplayProvider {
-  var sessionLifetime    : Int64
   var kiosks             : [Int32: Kiosk_Kiosk]
   var signs              : [Int32: Kiosk_Sign]
   var signIdsForKioskIds : [Int32: Int32]
-  // var subscribers        : map[int32]map[chan int32]bool
+  var subscribers        : Set<DispatchSemaphore>
   var nextKioskId        : Int32
   var nextSignId         : Int32
-  // var mux                :sync.Mutex
   
   init() {
-    self.sessionLifetime = 24 * 60 * 3600; // 24 hours
     self.kiosks = [:]
     self.signs = [:]
     self.signIdsForKioskIds = [:]
+    self.subscribers = []
     self.nextKioskId = 1
     self.nextSignId = 1
   }
@@ -113,6 +111,9 @@ class KioskProvider : Kiosk_DisplayProvider {
           self.signIdsForKioskIds[id] = request.signID
         }
       }
+      for sem in self.subscribers {
+        sem.signal()
+      }
       return SwiftProtobuf.Google_Protobuf_Empty()
   }
   
@@ -127,6 +128,30 @@ class KioskProvider : Kiosk_DisplayProvider {
   
   func getSignIdsForKioskId(request: Kiosk_GetSignIdForKioskIdRequest, session: Kiosk_DisplayGetSignIdsForKioskIdSession) throws
     -> ServerStatus? {
+      let update_semaphore = DispatchSemaphore(value: 0)
+      self.subscribers.insert(update_semaphore)
+      var running = true
+      while running {
+        var response = Kiosk_GetSignIdResponse()
+        if let signID = self.signIdsForKioskIds[request.kioskID] {
+          response.signID = signID
+        }
+        let send_semaphore = DispatchSemaphore(value: 0)
+        try session.send(response) {
+          if let error = $0 {
+            print("send error: \(error)")
+            running = false
+          }
+          send_semaphore.signal()
+        }
+        send_semaphore.wait()
+        if !running {
+          break
+        }
+        update_semaphore.wait()
+      }
+      print("unsubscribing")
+      self.subscribers.remove(update_semaphore)
       return .ok
   }
 }
@@ -140,12 +165,11 @@ if let value = ProcessInfo.processInfo.environment["KIOSK_PORT"] {
   port = value
 }
 
-let sem = DispatchSemaphore(value: 0)
-var kioskServer: ServiceServer?
 print("starting server")
-kioskServer = ServiceServer(address: address + ":" + port, serviceProviders: [KioskProvider()])
-kioskServer?.start()
-
-// This blocks to keep the main thread from finishing while the server runs,
-// but the server never exits. Kill the process to stop it.
+let sem = DispatchSemaphore(value: 0)
+let kioskServer = ServiceServer(address: address + ":" + port, serviceProviders: [KioskProvider()])
+kioskServer.start()
 _ = sem.wait()
+
+// Now we are blocked to keep the main thread from finishing while the server runs,
+// but the server never exits. Kill the process to stop it.
