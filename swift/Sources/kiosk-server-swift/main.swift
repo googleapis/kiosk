@@ -20,24 +20,16 @@ import SwiftProtobuf
 import SwiftGRPC
 
 class KioskProvider : Kiosk_DisplayProvider {
-  var kiosks             : [Int32: Kiosk_Kiosk]
-  var signs              : [Int32: Kiosk_Sign]
-  var signIdsForKioskIds : [Int32: Int32]
-  var subscribers        : Set<DispatchSemaphore>
-  var nextKioskId        : Int32
-  var nextSignId         : Int32
+  var kiosks: [Int32: Kiosk_Kiosk] = [:]
+  var signs: [Int32: Kiosk_Sign] = [:]
+  var signIdsForKioskIds: [Int32: Int32] = [:]
+  var subscribers: Set<DispatchSemaphore> = []
+  var nextKioskId: Int32 = 1
+  var nextSignId: Int32 = 1
   
-  init() {
-    self.kiosks = [:]
-    self.signs = [:]
-    self.signIdsForKioskIds = [:]
-    self.subscribers = []
-    self.nextKioskId = 1
-    self.nextSignId = 1
-  }
-  
-  func createKiosk(request: Kiosk_Kiosk, session: Kiosk_DisplayCreateKioskSession) throws
-    -> Kiosk_Kiosk {
+  func createKiosk(request: Kiosk_Kiosk,
+                   session: Kiosk_DisplayCreateKioskSession) throws ->
+    Kiosk_Kiosk {
       var kiosk = request
       kiosk.id = self.nextKioskId
       self.nextKioskId += 1
@@ -45,8 +37,9 @@ class KioskProvider : Kiosk_DisplayProvider {
       return kiosk
   }
   
-  func listKiosks(request: SwiftProtobuf.Google_Protobuf_Empty, session: Kiosk_DisplayListKiosksSession) throws
-    -> Kiosk_ListKiosksResponse {
+  func listKiosks(request: SwiftProtobuf.Google_Protobuf_Empty,
+                  session: Kiosk_DisplayListKiosksSession) throws ->
+    Kiosk_ListKiosksResponse {
       var k = Array(self.kiosks.values)
       k.sort(by:{(a: Kiosk_Kiosk, b: Kiosk_Kiosk) in a.id < b.id})
       var response = Kiosk_ListKiosksResponse()
@@ -54,13 +47,15 @@ class KioskProvider : Kiosk_DisplayProvider {
       return response
   }
   
-  func getKiosk(request: Kiosk_GetKioskRequest, session: Kiosk_DisplayGetKioskSession) throws
-    -> Kiosk_Kiosk {
+  func getKiosk(request: Kiosk_GetKioskRequest,
+                session: Kiosk_DisplayGetKioskSession) throws ->
+    Kiosk_Kiosk {
       return self.kiosks[request.id]!
   }
   
-  func deleteKiosk(request: Kiosk_DeleteKioskRequest, session: Kiosk_DisplayDeleteKioskSession) throws
-    -> SwiftProtobuf.Google_Protobuf_Empty {
+  func deleteKiosk(request: Kiosk_DeleteKioskRequest,
+                   session: Kiosk_DisplayDeleteKioskSession) throws ->
+    SwiftProtobuf.Google_Protobuf_Empty {
       self.kiosks[request.id] = nil
       if self.kiosks.count == 0 {
         self.nextKioskId = 1
@@ -68,8 +63,9 @@ class KioskProvider : Kiosk_DisplayProvider {
       return SwiftProtobuf.Google_Protobuf_Empty()
   }
   
-  func createSign(request: Kiosk_Sign, session: Kiosk_DisplayCreateSignSession) throws
-    -> Kiosk_Sign {
+  func createSign(request: Kiosk_Sign,
+                  session: Kiosk_DisplayCreateSignSession) throws ->
+    Kiosk_Sign {
       var sign = request
       sign.id = self.nextSignId
       self.nextSignId += 1
@@ -77,8 +73,9 @@ class KioskProvider : Kiosk_DisplayProvider {
       return sign
   }
   
-  func listSigns(request: SwiftProtobuf.Google_Protobuf_Empty, session: Kiosk_DisplayListSignsSession) throws
-    -> Kiosk_ListSignsResponse {
+  func listSigns(request: SwiftProtobuf.Google_Protobuf_Empty,
+                 session: Kiosk_DisplayListSignsSession) throws ->
+    Kiosk_ListSignsResponse {
       var s = Array(self.signs.values)
       s.sort(by:{(a: Kiosk_Sign, b: Kiosk_Sign) in a.id < b.id})
       var response = Kiosk_ListSignsResponse()
@@ -86,13 +83,15 @@ class KioskProvider : Kiosk_DisplayProvider {
       return response
   }
   
-  func getSign(request: Kiosk_GetSignRequest, session: Kiosk_DisplayGetSignSession) throws
-    -> Kiosk_Sign {
+  func getSign(request: Kiosk_GetSignRequest,
+               session: Kiosk_DisplayGetSignSession) throws ->
+    Kiosk_Sign {
       return self.signs[request.id]!
   }
   
-  func deleteSign(request: Kiosk_DeleteSignRequest, session: Kiosk_DisplayDeleteSignSession) throws
-    -> SwiftProtobuf.Google_Protobuf_Empty {
+  func deleteSign(request: Kiosk_DeleteSignRequest,
+                  session: Kiosk_DisplayDeleteSignSession) throws ->
+    SwiftProtobuf.Google_Protobuf_Empty {
       self.signs[request.id] = nil
       if self.signs.count == 0 {
         self.nextSignId = 1
@@ -100,8 +99,9 @@ class KioskProvider : Kiosk_DisplayProvider {
       return SwiftProtobuf.Google_Protobuf_Empty()
   }
   
-  func setSignIdForKioskIds(request: Kiosk_SetSignIdForKioskIdsRequest, session: Kiosk_DisplaySetSignIdForKioskIdsSession) throws
-    -> SwiftProtobuf.Google_Protobuf_Empty {
+  func setSignIdForKioskIds(request: Kiosk_SetSignIdForKioskIdsRequest,
+                            session: Kiosk_DisplaySetSignIdForKioskIdsSession) throws ->
+    SwiftProtobuf.Google_Protobuf_Empty {
       if request.kioskIds.count > 0 {
         for id in request.kioskIds {
           self.signIdsForKioskIds[id] = request.signID
@@ -117,8 +117,9 @@ class KioskProvider : Kiosk_DisplayProvider {
       return SwiftProtobuf.Google_Protobuf_Empty()
   }
   
-  func getSignIdForKioskId(request: Kiosk_GetSignIdForKioskIdRequest, session: Kiosk_DisplayGetSignIdForKioskIdSession) throws
-    -> Kiosk_GetSignIdResponse {
+  func getSignIdForKioskId(request: Kiosk_GetSignIdForKioskIdRequest,
+                           session: Kiosk_DisplayGetSignIdForKioskIdSession) throws ->
+    Kiosk_GetSignIdResponse {
       var response = Kiosk_GetSignIdResponse()
       if let signID = self.signIdsForKioskIds[request.kioskID] {
         response.signID = signID
@@ -126,8 +127,9 @@ class KioskProvider : Kiosk_DisplayProvider {
       return response
   }
   
-  func getSignIdsForKioskId(request: Kiosk_GetSignIdForKioskIdRequest, session: Kiosk_DisplayGetSignIdsForKioskIdSession) throws
-    -> ServerStatus? {
+  func getSignIdsForKioskId(request: Kiosk_GetSignIdForKioskIdRequest,
+                            session: Kiosk_DisplayGetSignIdsForKioskIdSession) throws ->
+    ServerStatus? {
       let update_semaphore = DispatchSemaphore(value: 0)
       self.subscribers.insert(update_semaphore)
       var running = true
