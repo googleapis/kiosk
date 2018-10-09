@@ -14,4 +14,4 @@ clean :
 	rm -rf .build Packages Package.pins Package.resolved
 	rm -rf Sources/*/generated Sources/generated
 	rm -rf kiosk_descriptor.pb
-	rm -rf k-tool-swift kiosk-server-swift
+	rm -rf kiosk-tool-swift kiosk-server-swift
