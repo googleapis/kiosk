@@ -12,14 +12,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
+#/
+
+ifeq ($(UNAME_S),Linux)
+else
+  CFLAGS = -Xlinker -lz
+endif
 
 all:
 	./COMPILE-PROTOS.sh
-	cd server; go install .
-	cd k; go install .
+	swift build $(CFLAGS) 
+	cp .build/debug/kiosk-tool-swift .
+	cp .build/debug/kiosk-server-swift .
 
-clean:
-	rm -rf protos/api-common-protos
-	rm -rf generated
-
+clean :
+	rm -rf .build Packages Package.pins Package.resolved
+	rm -rf Sources/*/generated Sources/generated
+	rm -rf kiosk_descriptor.pb
+	rm -rf kiosk-tool-swift kiosk-server-swift
