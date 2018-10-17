@@ -17,12 +17,21 @@ syntax = "proto3";
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 import "google/type/latlng.proto";
+import "google/api/annotations.proto";
 
-option java_multiple_files = true; 
+option java_multiple_files = true;
+option go_package = "github.com/googleapis/kiosk/generated;kiosk"; 
+option (google.api.metadata) = {
+
+  product_name: "Kiosk"
+ 
+  product_uri: "https://github.com/googleapis/kiosk"
+ };
 
 package kiosk;
 
 service Display {
+  option (google.api.default_host) = "localhost";
 
   // Create a kiosk. This enrolls the kiosk for sign display.
   rpc CreateKiosk(Kiosk) returns (Kiosk) {}

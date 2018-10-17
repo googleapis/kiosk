@@ -17,9 +17,11 @@
 all:
 	./COMPILE-PROTOS.sh
 	cd server; go install .
+	cd kioskgapic; go install .
 	cd k; go install .
 
 clean:
 	rm -rf protos/api-common-protos
 	rm -rf generated
+	rm -rf kioskgapic
 
