@@ -69,7 +69,8 @@ class KioskProvider: Kiosk_DisplayProvider {
                    session: Kiosk_DisplayDeleteKioskSession) throws ->
     SwiftProtobuf.Google_Protobuf_Empty {
       return queue.sync {
-        self.kiosks[request.id] = nil
+        self.kiosks.removeValue(forKey: request.id)
+        self.signIdsForKioskIds.removeValue(forKey: request.id)
         return SwiftProtobuf.Google_Protobuf_Empty()
       }
   }
@@ -114,7 +115,7 @@ class KioskProvider: Kiosk_DisplayProvider {
                   session: Kiosk_DisplayDeleteSignSession) throws ->
     SwiftProtobuf.Google_Protobuf_Empty {
       return queue.sync {
-        self.signs[request.id] = nil
+        self.signs.removeValue(forKey: request.id)
         return SwiftProtobuf.Google_Protobuf_Empty()
       }
   }
