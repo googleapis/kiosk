@@ -70,9 +70,6 @@ class KioskProvider: Kiosk_DisplayProvider {
     SwiftProtobuf.Google_Protobuf_Empty {
       return queue.sync {
         self.kiosks[request.id] = nil
-        if self.kiosks.count == 0 {
-          self.nextKioskId = 1
-        }
         return SwiftProtobuf.Google_Protobuf_Empty()
       }
   }
@@ -118,9 +115,6 @@ class KioskProvider: Kiosk_DisplayProvider {
     SwiftProtobuf.Google_Protobuf_Empty {
       return queue.sync {
         self.signs[request.id] = nil
-        if self.signs.count == 0 {
-          self.nextSignId = 1
-        }
         return SwiftProtobuf.Google_Protobuf_Empty()
       }
   }
