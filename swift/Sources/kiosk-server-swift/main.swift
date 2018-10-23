@@ -129,14 +129,11 @@ class KioskProvider: Kiosk_DisplayProvider {
                             session: Kiosk_DisplaySetSignIdForKioskIdsSession) throws ->
     SwiftProtobuf.Google_Protobuf_Empty {
       return queue.sync {
-        if request.kioskIds.count > 0 {
-          for id in request.kioskIds {
-            self.signIdsForKioskIds[id] = request.signID
-          }
-        } else {
-          for id in self.kiosks.keys {
-            self.signIdsForKioskIds[id] = request.signID
-          }
+        let kioskIDsToChange = !request.kioskIds.isEmpty
+          ? request.kioskIds
+          : Array(self.kiosks.keys)
+        for id in kioskIDsToChange {
+          self.signIdsForKioskIds[id] = request.signID
         }
         for sem in self.subscribers {
           sem.signal()
