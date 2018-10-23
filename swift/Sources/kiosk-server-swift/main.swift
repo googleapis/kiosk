@@ -20,6 +20,8 @@ import SwiftGRPC
 import SwiftProtobuf
 
 class KioskProvider: Kiosk_DisplayProvider {
+  let queue = DispatchQueue(label: "KioskProvider.lock")
+  
   var kiosks: [Int32: Kiosk_Kiosk] = [:]
   var signs: [Int32: Kiosk_Sign] = [:]
   var signIdsForKioskIds: [Int32: Int32] = [:]
@@ -30,106 +32,127 @@ class KioskProvider: Kiosk_DisplayProvider {
   func createKiosk(request: Kiosk_Kiosk,
                    session: Kiosk_DisplayCreateKioskSession) throws ->
     Kiosk_Kiosk {
-      var kiosk = request
-      kiosk.id = self.nextKioskId
-      self.nextKioskId += 1
-      self.kiosks[kiosk.id] = kiosk
-      return kiosk
+      return queue.sync {
+        var kiosk = request
+        kiosk.id = self.nextKioskId
+        self.nextKioskId += 1
+        self.kiosks[kiosk.id] = kiosk
+        return kiosk
+      }
   }
   
   func listKiosks(request: SwiftProtobuf.Google_Protobuf_Empty,
                   session: Kiosk_DisplayListKiosksSession) throws ->
     Kiosk_ListKiosksResponse {
-      var k = Array(self.kiosks.values)
-      k.sort(by: { (a: Kiosk_Kiosk, b: Kiosk_Kiosk) in a.id < b.id })
-      var response = Kiosk_ListKiosksResponse()
-      response.kiosks = k
-      return response
+      return queue.sync {
+        var k = Array(self.kiosks.values)
+        k.sort(by: { (a: Kiosk_Kiosk, b: Kiosk_Kiosk) in a.id < b.id })
+        var response = Kiosk_ListKiosksResponse()
+        response.kiosks = k
+        return response
+      }
   }
   
   func getKiosk(request: Kiosk_GetKioskRequest,
                 session: Kiosk_DisplayGetKioskSession) throws ->
     Kiosk_Kiosk {
-      return self.kiosks[request.id]!
+      return queue.sync {
+        self.kiosks[request.id]!
+      }
   }
   
   func deleteKiosk(request: Kiosk_DeleteKioskRequest,
                    session: Kiosk_DisplayDeleteKioskSession) throws ->
     SwiftProtobuf.Google_Protobuf_Empty {
-      self.kiosks[request.id] = nil
-      if self.kiosks.count == 0 {
-        self.nextKioskId = 1
+      return queue.sync {
+        self.kiosks[request.id] = nil
+        if self.kiosks.count == 0 {
+          self.nextKioskId = 1
+        }
+        return SwiftProtobuf.Google_Protobuf_Empty()
       }
-      return SwiftProtobuf.Google_Protobuf_Empty()
   }
   
   func createSign(request: Kiosk_Sign,
                   session: Kiosk_DisplayCreateSignSession) throws ->
     Kiosk_Sign {
-      var sign = request
-      sign.id = self.nextSignId
-      self.nextSignId += 1
-      self.signs[sign.id] = sign
-      return sign
+      return queue.sync {
+        var sign = request
+        sign.id = self.nextSignId
+        self.nextSignId += 1
+        self.signs[sign.id] = sign
+        return sign
+      }
   }
   
   func listSigns(request: SwiftProtobuf.Google_Protobuf_Empty,
                  session: Kiosk_DisplayListSignsSession) throws ->
     Kiosk_ListSignsResponse {
-      var s = Array(self.signs.values)
-      s.sort(by: { (a: Kiosk_Sign, b: Kiosk_Sign) in a.id < b.id })
-      var response = Kiosk_ListSignsResponse()
-      response.signs = s
-      return response
+      return queue.sync {
+        var s = Array(self.signs.values)
+        s.sort(by: { (a: Kiosk_Sign, b: Kiosk_Sign) in a.id < b.id })
+        var response = Kiosk_ListSignsResponse()
+        response.signs = s
+        return response
+      }
   }
   
   func getSign(request: Kiosk_GetSignRequest,
                session: Kiosk_DisplayGetSignSession) throws ->
     Kiosk_Sign {
-      return self.signs[request.id]!
+      return queue.sync {
+        self.signs[request.id]!
+      }
   }
   
   func deleteSign(request: Kiosk_DeleteSignRequest,
                   session: Kiosk_DisplayDeleteSignSession) throws ->
     SwiftProtobuf.Google_Protobuf_Empty {
-      self.signs[request.id] = nil
-      if self.signs.count == 0 {
-        self.nextSignId = 1
+      return queue.sync {
+        self.signs[request.id] = nil
+        if self.signs.count == 0 {
+          self.nextSignId = 1
+        }
+        return SwiftProtobuf.Google_Protobuf_Empty()
       }
-      return SwiftProtobuf.Google_Protobuf_Empty()
   }
   
   func setSignIdForKioskIds(request: Kiosk_SetSignIdForKioskIdsRequest,
                             session: Kiosk_DisplaySetSignIdForKioskIdsSession) throws ->
     SwiftProtobuf.Google_Protobuf_Empty {
-      if request.kioskIds.count > 0 {
-        for id in request.kioskIds {
-          self.signIdsForKioskIds[id] = request.signID
+      return queue.sync {
+        if request.kioskIds.count > 0 {
+          for id in request.kioskIds {
+            self.signIdsForKioskIds[id] = request.signID
+          }
+        } else {
+          for id in self.kiosks.keys {
+            self.signIdsForKioskIds[id] = request.signID
+          }
         }
-      } else {
-        for id in self.kiosks.keys {
-          self.signIdsForKioskIds[id] = request.signID
+        for sem in self.subscribers {
+          sem.signal()
         }
+        return SwiftProtobuf.Google_Protobuf_Empty()
       }
-      for sem in self.subscribers {
-        sem.signal()
-      }
-      return SwiftProtobuf.Google_Protobuf_Empty()
   }
   
   func getSignIdForKioskId(request: Kiosk_GetSignIdForKioskIdRequest,
                            session: Kiosk_DisplayGetSignIdForKioskIdSession) throws ->
     Kiosk_GetSignIdResponse {
-      var response = Kiosk_GetSignIdResponse()
-      if let signID = self.signIdsForKioskIds[request.kioskID] {
-        response.signID = signID
+      return queue.sync {
+        var response = Kiosk_GetSignIdResponse()
+        if let signID = self.signIdsForKioskIds[request.kioskID] {
+          response.signID = signID
+        }
+        return response
       }
-      return response
   }
   
   func getSignIdsForKioskId(request: Kiosk_GetSignIdForKioskIdRequest,
                             session: Kiosk_DisplayGetSignIdsForKioskIdSession) throws ->
     ServerStatus? {
+      // FIXME: Also needs access serialization.
       let update_semaphore = DispatchSemaphore(value: 0)
       self.subscribers.insert(update_semaphore)
       var running = true
