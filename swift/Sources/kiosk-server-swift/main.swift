@@ -19,15 +19,21 @@ import Foundation
 import SwiftGRPC
 import SwiftProtobuf
 
+typealias KioskID = Int32
+typealias SignID = Int32
+typealias SubscriberID = Int32
+
 class KioskProvider: Kiosk_DisplayProvider {
   let queue = DispatchQueue(label: "KioskProvider.lock")
   
-  var kiosks: [Int32: Kiosk_Kiosk] = [:]
-  var signs: [Int32: Kiosk_Sign] = [:]
-  var signIdsForKioskIds: [Int32: Int32] = [:]
-  var subscribers: Set<DispatchSemaphore> = []
-  var nextKioskId: Int32 = 1
-  var nextSignId: Int32 = 1
+  var kiosks: [KioskID: Kiosk_Kiosk] = [:]
+  var signs: [SignID: Kiosk_Sign] = [:]
+  var signIdsForKioskIds: [KioskID: SignID] = [:]
+  // `SignID == nil` in this case indicates that the corresponding kiosk has been deleted.
+  var subscribersForKioskIds: [KioskID: [SubscriberID: (SignID?) -> Void]] = [:]
+  var nextKioskId: KioskID = 1
+  var nextSignId: SignID = 1
+  var nextSubscriberId: SubscriberID = 1
   
   func createKiosk(request: Kiosk_Kiosk,
                    session: Kiosk_DisplayCreateKioskSession) throws ->
@@ -71,6 +77,12 @@ class KioskProvider: Kiosk_DisplayProvider {
       return queue.sync {
         self.kiosks.removeValue(forKey: request.id)
         self.signIdsForKioskIds.removeValue(forKey: request.id)
+        
+        for block in self.subscribersForKioskIds[request.id, default: [:]].values {
+          // Notify all subscribers that this kiosk has been deleted, so that they can end the call.
+          block(nil)
+        }
+        self.subscribersForKioskIds.removeValue(forKey: request.id)
         return SwiftProtobuf.Google_Protobuf_Empty()
       }
   }
@@ -133,9 +145,10 @@ class KioskProvider: Kiosk_DisplayProvider {
           : Array(self.kiosks.keys)
         for id in kioskIDsToChange {
           self.signIdsForKioskIds[id] = request.signID
-        }
-        for sem in self.subscribers {
-          sem.signal()
+
+          for block in self.subscribersForKioskIds[id, default: [:]].values {
+            block(request.signID)
+          }
         }
         return SwiftProtobuf.Google_Protobuf_Empty()
       }
@@ -156,32 +169,54 @@ class KioskProvider: Kiosk_DisplayProvider {
   func getSignIdsForKioskId(request: Kiosk_GetSignIdForKioskIdRequest,
                             session: Kiosk_DisplayGetSignIdsForKioskIdSession) throws ->
     ServerStatus? {
-      // FIXME: Also needs access serialization.
-      let update_semaphore = DispatchSemaphore(value: 0)
-      self.subscribers.insert(update_semaphore)
-      var running = true
-      while running {
-        var response = Kiosk_GetSignIdResponse()
-        if let signID = self.signIdsForKioskIds[request.kioskID] {
-          response.signID = signID
+      try queue.sync {
+        if self.kiosks[request.kioskID] == nil {
+          throw ServerStatus(code: .notFound, message: "No kiosk with that ID found.")
         }
-        let send_semaphore = DispatchSemaphore(value: 0)
-        try session.send(response) {
-          if let error = $0 {
-            print("send error: \(error)")
-            running = false
+        
+        let currentSubscriberId = nextSubscriberId
+        nextSubscriberId += 1
+        
+        let removeSubscriberAndCloseSession: (String) -> Void = { [weak self] reason in
+          print("unsubscribing subscriber \(currentSubscriberId) for kiosk \(request.kioskID), reason: \(reason)")
+          self?.subscribersForKioskIds[request.kioskID, default: [:]].removeValue(forKey: currentSubscriberId)
+          try? session.close(withStatus: .ok, completion: nil)
+        }
+        let subscriberBlock: (Int32?) -> Void = { [weak self] newSignID in
+          guard let newSignID = newSignID else {
+            // Indicates that the corresponding Kiosk has been deleted; delete the subscriber block and end the call.
+            // No `queue.sync` needed here, as this block is always called from within a `queue.sync` block already.
+            removeSubscriberAndCloseSession("kiosk deleted")
+            return
           }
-          send_semaphore.signal()
+          
+          var response = Kiosk_GetSignIdResponse()
+          response.signID = newSignID
+          do {
+            try session.send(response) {
+              if let error = $0 {
+                print("send error: \(error)")
+                self?.queue.sync {
+                  // Indicates that the corresponding call has been closed client-side (or we are having connection
+                  // problems); delete the subscriber block and end the call.
+                  // `queue.sync` needed here, as this block is called asynchronously.
+                  removeSubscriberAndCloseSession("sending error, call was probably ended client-side")
+                }
+              }
+            }
+          } catch {
+            // No `queue.sync` needed here, as this block is always called from within a `queue.sync` block already.
+            removeSubscriberAndCloseSession("unexpected sending error")
+          }
         }
-        send_semaphore.wait()
-        if !running {
-          break
-        }
-        update_semaphore.wait()
+        
+        print("subscribing subscriber \(currentSubscriberId) for kiosk \(request.kioskID)")
+        self.subscribersForKioskIds[request.kioskID, default: [:]][currentSubscriberId] = subscriberBlock
+        // Start the stream by sending the current sign ID.
+        subscriberBlock(self.signIdsForKioskIds[request.kioskID] ?? 0)
       }
-      print("unsubscribing")
-      self.subscribers.remove(update_semaphore)
-      return .ok
+      
+      return nil  // Status is sent in `subscriberBlock`.
   }
 }
 

@@ -4,6 +4,8 @@ swift/.build/
 swift/kiosk-swift.xcodeproj/
 swift/kiosk_descriptor.pb
 swift/Package.resolved
+swift/kiosk-server-swift
+swift/kiosk-tool-swift
 
 .DS_Store
 
