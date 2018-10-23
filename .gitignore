@@ -1,5 +1,9 @@
 generated/
 protos/api-common-protos/
+swift/.build/
+swift/kiosk-swift.xcodeproj/
+swift/kiosk_descriptor.pb
+swift/Package.resolved
 
 .DS_Store
 
