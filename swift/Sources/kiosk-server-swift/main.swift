@@ -16,10 +16,10 @@
 
 import Dispatch
 import Foundation
-import SwiftProtobuf
 import SwiftGRPC
+import SwiftProtobuf
 
-class KioskProvider : Kiosk_DisplayProvider {
+class KioskProvider: Kiosk_DisplayProvider {
   var kiosks: [Int32: Kiosk_Kiosk] = [:]
   var signs: [Int32: Kiosk_Sign] = [:]
   var signIdsForKioskIds: [Int32: Int32] = [:]
@@ -41,7 +41,7 @@ class KioskProvider : Kiosk_DisplayProvider {
                   session: Kiosk_DisplayListKiosksSession) throws ->
     Kiosk_ListKiosksResponse {
       var k = Array(self.kiosks.values)
-      k.sort(by:{(a: Kiosk_Kiosk, b: Kiosk_Kiosk) in a.id < b.id})
+      k.sort(by: { (a: Kiosk_Kiosk, b: Kiosk_Kiosk) in a.id < b.id })
       var response = Kiosk_ListKiosksResponse()
       response.kiosks = k
       return response
@@ -77,7 +77,7 @@ class KioskProvider : Kiosk_DisplayProvider {
                  session: Kiosk_DisplayListSignsSession) throws ->
     Kiosk_ListSignsResponse {
       var s = Array(self.signs.values)
-      s.sort(by:{(a: Kiosk_Sign, b: Kiosk_Sign) in a.id < b.id})
+      s.sort(by: { (a: Kiosk_Sign, b: Kiosk_Sign) in a.id < b.id })
       var response = Kiosk_ListSignsResponse()
       response.signs = s
       return response
