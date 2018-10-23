@@ -56,8 +56,12 @@ class KioskProvider: Kiosk_DisplayProvider {
   func getKiosk(request: Kiosk_GetKioskRequest,
                 session: Kiosk_DisplayGetKioskSession) throws ->
     Kiosk_Kiosk {
-      return queue.sync {
-        self.kiosks[request.id]!
+      return try queue.sync {
+        if let kiosk = self.kiosks[request.id] {
+          return kiosk
+        } else {
+          throw ServerStatus(code: .notFound, message: "No kiosk with that ID found.")
+        }
       }
   }
   
@@ -100,8 +104,12 @@ class KioskProvider: Kiosk_DisplayProvider {
   func getSign(request: Kiosk_GetSignRequest,
                session: Kiosk_DisplayGetSignSession) throws ->
     Kiosk_Sign {
-      return queue.sync {
-        self.signs[request.id]!
+      return try queue.sync {
+        if let sign = self.signs[request.id] {
+          return sign
+        } else {
+          throw ServerStatus(code: .notFound, message: "No sign with that ID found.")
+        }
       }
   }
   
