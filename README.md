@@ -14,9 +14,9 @@ gRPC to JSON transcoding.
 This project aims to demonstrate the following:
 
 - How to design an API with Protocol Buffers
-- How to run protoc and the Go Protocol Buffer and gRPC code generators.
-- How to write a gRPC server with Go.
-- How to build a gRPC client with Go.
+- How to run protoc and the Protocol Buffer and gRPC code generators.
+- How to write a gRPC server in multiple languages (currently Go and Swift).
+- How to build a gRPC client in multiple languages (currently Go and Swift).
 - How to generate API clients in other languages.
 - How to annotate the API for HTTP transcoding.
 - How to manage the API with Google Cloud Endpoints.
