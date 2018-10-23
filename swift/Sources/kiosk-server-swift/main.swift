@@ -123,7 +123,11 @@ class KioskProvider: Kiosk_DisplayProvider {
   func setSignIdForKioskIds(request: Kiosk_SetSignIdForKioskIdsRequest,
                             session: Kiosk_DisplaySetSignIdForKioskIdsSession) throws ->
     SwiftProtobuf.Google_Protobuf_Empty {
-      return queue.sync {
+      return try queue.sync {
+        if self.signs[request.signID] == nil {
+          throw ServerStatus(code: .notFound, message: "No sign with that ID found.")
+        }
+        
         let kioskIDsToChange = !request.kioskIds.isEmpty
           ? request.kioskIds
           : Array(self.kiosks.keys)
