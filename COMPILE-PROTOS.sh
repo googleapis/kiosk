@@ -23,9 +23,12 @@ fi
 go get github.com/golang/protobuf/protoc-gen-go
 go get google.golang.org/grpc
 
-d=$(pwd)
 go get github.com/googleapis/gapic-generator-go/cmd/protoc-gen-go_gapic
-cd $GOPATH/src/github.com/googleapis/gapic-generator-go/cmd/protoc-gen-go_gapic; git checkout v0.1.0; go install; cd $d 
+pushd $(pwd)
+cd $GOPATH/src/github.com/googleapis/gapic-generator-go/cmd/protoc-gen-go_gapic
+git checkout v0.1.0
+go install
+popd
 
 mkdir -p generated
 
