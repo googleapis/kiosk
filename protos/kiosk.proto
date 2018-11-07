@@ -21,12 +21,6 @@ import "google/api/annotations.proto";
 
 option java_multiple_files = true;
 option go_package = "github.com/googleapis/kiosk/generated;kiosk"; 
-option (google.api.metadata) = {
-
-  product_name: "Kiosk"
- 
-  product_uri: "https://github.com/googleapis/kiosk"
- };
 
 package kiosk;
 
@@ -69,20 +63,28 @@ service Display {
 
 // Describes a hardware device that can display signs.
 message Kiosk {
+  // Output only.
   int32 id = 1;                       // unique id
+  // Required.
   string name = 2;                    // name of device hardware
   ScreenSize size = 3;                // screen size
   google.type.LatLng location = 4;    // kiosk location
+
+  // Output only.
   google.protobuf.Timestamp create_time = 5;
 }
 
 // Describes a digital sign.
 // Signs can include text, images, or both.
 message Sign {
+  // Output only.
   int32 id = 1;                       // unique id
+  // Required.
   string name = 2;                    // name of sign
   string text = 3;                    // text to display
   bytes image = 4;                    // image to display
+  
+  // Output only.
   google.protobuf.Timestamp create_time = 5;
 }
 
@@ -98,10 +100,12 @@ message ListKiosksResponse {
 }
 
 message GetKioskRequest {
+  // Required.
   int32 id = 1;
 }
 
 message DeleteKioskRequest {
+  // Required.
   int32 id = 1;
 }
 
@@ -110,19 +114,24 @@ message ListSignsResponse {
 }
 
 message GetSignRequest {
+  // Required.
   int32 id = 1;
 }
 
 message DeleteSignRequest {
+  // Required.
   int32 id = 1;
 }
 
 message SetSignIdForKioskIdsRequest {
+  // Required.
   repeated int32 kiosk_ids = 1;
+  // Required.
   int32 sign_id = 2;
 }
 
 message GetSignIdForKioskIdRequest {
+  // Required.
   int32 kiosk_id = 1;
 }
 

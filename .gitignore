@@ -1,3 +1,5 @@
+kctl/
+gapic/
 generated/
 protos/api-common-protos/
 swift/.build/
