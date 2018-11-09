@@ -14,24 +14,33 @@
 # limitations under the License.
 
 if [ ! -d "protos/api-common-protos" ]; then
-  curl -L -O https://github.com/googleapis/api-common-protos/archive/master.zip
-  unzip master.zip
-  rm -f master.zip
-  mv api-common-protos-master protos/api-common-protos
+  curl -L -O https://github.com/googleapis/api-common-protos/archive/input-contract.zip
+  unzip input-contract.zip
+  rm -f input-contract.zip
+  mv api-common-protos-input-contract protos/api-common-protos
 fi
 
 go get github.com/golang/protobuf/protoc-gen-go
 go get google.golang.org/grpc
 
+go get github.com/googleapis/gapic-generator-go/cmd/protoc-gen-go_gapic
+pushd $(pwd)
+cd $GOPATH/src/github.com/googleapis/gapic-generator-go/cmd/protoc-gen-go_gapic
+git checkout v0.1.0
+go install
+popd
+
 mkdir -p generated
 
 protoc protos/kiosk.proto \
+  --go_gapic_out $GOPATH/src/ \
+  --go_gapic_opt 'github.com/googleapis/kiosk/kioskgapic;kioskgapic'  \
   -I protos/api-common-protos \
   -I protos \
   --include_imports \
   --include_source_info \
   --descriptor_set_out=generated/kiosk_descriptor.pb \
-  --go_out=plugins=grpc:generated
+  --go_out=plugins=grpc:$GOPATH/src
 
 protoc endpoints/kiosk_with_http.proto \
   -I protos/api-common-protos \
@@ -39,3 +48,10 @@ protoc endpoints/kiosk_with_http.proto \
   --include_imports \
   --include_source_info \
   --descriptor_set_out=generated/kiosk_with_http_descriptor.pb
+
+# TODO(ndietz) remove this section when pongad fixes w/cloud-go team
+# remove generated code specific to Google gapics in order to compile kioskgapic lib
+sed -i '/	"cloud.google.com\/go\/internal\/version"/d' ./kioskgapic/display_client.go
+sed -i '/	kv := append(\[]string{"gl-go", version.Go()}, keyval...)/d' ./kioskgapic/display_client.go
+sed -i '/	kv = append(kv, "gapic", version.Repo, "gax", gax.Version, "grpc", grpc.Version)/d' ./kioskgapic/display_client.go
+sed -i '/	c.xGoogMetadata = metadata.Pairs("x-goog-api-client", gax.XGoogHeader(kv...))/d' ./kioskgapic/display_client.go

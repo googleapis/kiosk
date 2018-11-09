@@ -17,7 +17,6 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -25,13 +24,14 @@ import (
 	"strings"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	"golang.org/x/oauth2"
+	"google.golang.org/api/option"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/metadata"
 
 	"github.com/docopt/docopt-go"
 
 	pb "github.com/googleapis/kiosk/generated"
+	gapic "github.com/googleapis/kiosk/kioskgapic"
 )
 
 const (
@@ -109,56 +109,61 @@ func main() {
 		}
 	}
 	address := host + ":" + port
-	fmt.Printf("FROM %s ", address)
+	fmt.Printf("FROM %s\n", address)
 
-	// Create context to use for API calls, including any authorization settings in the environment.
-	ctx := context.Background()
-	apikey := os.Getenv("KIOSK_APIKEY")
-	if apikey != "" {
+	// configure client options
+	clientOptions := []option.ClientOption{option.WithEndpoint(address)}
+
+	// Include any authorization settings from the environment
+	if apikey := os.Getenv("KIOSK_APIKEY"); apikey != "" {
 		log.Printf("Using API key: %s", apikey)
-		ctx = metadata.NewOutgoingContext(ctx, metadata.Pairs("x-api-key", apikey))
-	}
-	token := os.Getenv("KIOSK_TOKEN")
-	if token != "" {
-		log.Printf("Using authentication token: %s", token)
-		ctx = metadata.NewOutgoingContext(ctx, metadata.Pairs("Authorization", fmt.Sprintf("Bearer %s", token)))
+		clientOptions = append(clientOptions, option.WithAPIKey(apikey))
 	}
 
-	// Set up a connection to the server.
-	var conn *grpc.ClientConn
-	var err error
+	if token := os.Getenv("KIOSK_TOKEN"); token != "" {
+		log.Printf("Using authentication token: %s", token)
+		option.WithTokenSource(oauth2.StaticTokenSource(
+			&oauth2.Token{
+				AccessToken: token,
+				TokenType:   "Bearer",
+			},
+		))
+	}
+
 	if !useSSL {
-		conn, err = grpc.Dial(host+":"+port, grpc.WithInsecure())
-	} else {
-		conn, err = grpc.Dial(host+":"+port,
-			grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{
-				// remove the following line if the server certificate is signed by a certificate authority
-				InsecureSkipVerify: true,
-			})))
+		conn, err := grpc.Dial(address, grpc.WithInsecure())
+		if err != nil {
+			log.Fatalf("could not create an insecure connection: %v\n", err)
+		}
+		clientOptions = append(clientOptions, option.WithGRPCConn(conn))
 	}
+
+	// create new client
+	ctx := context.Background()
+	c, err := gapic.NewDisplayClient(ctx, clientOptions...)
 	if err != nil {
-		log.Fatalf("did not connect: %v", err)
+		log.Fatalf("could not create client: %v\n", err)
 	}
-	defer conn.Close()
-	c := pb.NewDisplayClient(conn)
+
+	defer c.Close()
 
 	if Match(args, "set sign <sign_id> for kiosk <kiosk_id>") {
 		sign_id, err := args.Int("<sign_id>")
 		kiosk_id, err := args.Int("<kiosk_id>")
-		response, err := c.SetSignIdForKioskIds(ctx, &pb.SetSignIdForKioskIdsRequest{
+		err = c.SetSignIdForKioskIds(ctx, &pb.SetSignIdForKioskIdsRequest{
 			SignId:   int32(sign_id),
 			KioskIds: []int32{int32(kiosk_id)},
 		})
 		if Verify(err) {
-			fmt.Printf("%+v\n", response)
+			fmt.Printf("Successfully set kiosk %d to sign %d\n", kiosk_id, sign_id)
 		}
 	} else if Match(args, "set sign <sign_id> for all kiosks") {
 		sign_id, err := args.Int("<sign_id>")
-		response, err := c.SetSignIdForKioskIds(ctx, &pb.SetSignIdForKioskIdsRequest{
+		err = c.SetSignIdForKioskIds(ctx, &pb.SetSignIdForKioskIdsRequest{
 			SignId: int32(sign_id),
 		})
 		if Verify(err) {
-			fmt.Printf("%+v\n", response)
+			fmt.Printf("Successfully set all kiosks to sign %d\n", sign_id)
 		}
 	} else if Match(args, "get sign for kiosk <kiosk_id>") {
 		kiosk_id, err := args.Int("<kiosk_id>")
@@ -206,7 +211,7 @@ func main() {
 		}
 	} else if Match(args, "delete kiosk <kiosk_id>") {
 		id, err := args.Int("<kiosk_id>")
-		_, err = c.DeleteKiosk(ctx, &pb.DeleteKioskRequest{Id: int32(id)})
+		err = c.DeleteKiosk(ctx, &pb.DeleteKioskRequest{Id: int32(id)})
 		if Verify(err) {
 			fmt.Printf("deleted\n")
 		}
@@ -249,7 +254,7 @@ func main() {
 		}
 	} else if Match(args, "delete sign") {
 		id, err := args.Int("<sign_id>")
-		_, err = c.DeleteSign(ctx, &pb.DeleteSignRequest{Id: int32(id)})
+		err = c.DeleteSign(ctx, &pb.DeleteSignRequest{Id: int32(id)})
 		if Verify(err) {
 			fmt.Printf("deleted\n")
 		}
