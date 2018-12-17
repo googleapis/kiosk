@@ -25,22 +25,28 @@ go get google.golang.org/grpc
 
 go get github.com/googleapis/gapic-generator-go/cmd/protoc-gen-go_gapic
 pushd $(pwd)
-cd $GOPATH/src/github.com/googleapis/gapic-generator-go/cmd/protoc-gen-go_gapic
-git checkout v0.1.0
-go install
+cd $GOPATH/src/github.com/googleapis/gapic-generator-go
+git checkout v0.2.1-experimental
+go install github.com/googleapis/gapic-generator-go/cmd/protoc-gen-go_gapic
+go install github.com/googleapis/gapic-generator-go/cmd/protoc-gen-gcli
 popd
 
 mkdir -p generated
+mkdir -p gapic
+mkdir -p kctl
 
 protoc protos/kiosk.proto \
-  --go_gapic_out $GOPATH/src/ \
-  --go_gapic_opt 'github.com/googleapis/kiosk/kioskgapic;kioskgapic'  \
   -I protos/api-common-protos \
   -I protos \
   --include_imports \
   --include_source_info \
   --descriptor_set_out=generated/kiosk_descriptor.pb \
-  --go_out=plugins=grpc:$GOPATH/src
+  --go_out=plugins=grpc:$GOPATH/src \
+  --go_gapic_out $GOPATH/src/ \
+  --go_gapic_opt 'github.com/googleapis/kiosk/gapic;gapic' \
+  --gcli_out kctl/ \
+  --gcli_opt "gapic=github.com/googleapis/kiosk/gapic" \
+  --gcli_opt "root=kctl"
 
 protoc endpoints/kiosk_with_http.proto \
   -I protos/api-common-protos \
@@ -48,10 +54,3 @@ protoc endpoints/kiosk_with_http.proto \
   --include_imports \
   --include_source_info \
   --descriptor_set_out=generated/kiosk_with_http_descriptor.pb
-
-# TODO(ndietz) remove this section when pongad fixes w/cloud-go team
-# remove generated code specific to Google gapics in order to compile kioskgapic lib
-sed -i '/	"cloud.google.com\/go\/internal\/version"/d' ./kioskgapic/display_client.go
-sed -i '/	kv := append(\[]string{"gl-go", version.Go()}, keyval...)/d' ./kioskgapic/display_client.go
-sed -i '/	kv = append(kv, "gapic", version.Repo, "gax", gax.Version, "grpc", grpc.Version)/d' ./kioskgapic/display_client.go
-sed -i '/	c.xGoogMetadata = metadata.Pairs("x-goog-api-client", gax.XGoogHeader(kv...))/d' ./kioskgapic/display_client.go
