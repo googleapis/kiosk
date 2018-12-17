@@ -17,9 +17,9 @@
 all:
 	./COMPILE-PROTOS.sh
 	cd server; go install .
-	cd gapic; go install .
+	cd gapic; go get; go install .
 	cd k; go install .
-	cd kctl; go install .
+	cd kctl; go get; go install .
 
 clean:
 	rm -rf protos/api-common-protos
