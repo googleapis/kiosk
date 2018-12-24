@@ -26,9 +26,9 @@ go get google.golang.org/grpc
 go get github.com/googleapis/gapic-generator-go/cmd/protoc-gen-go_gapic
 pushd $(pwd)
 cd $GOPATH/src/github.com/googleapis/gapic-generator-go
-git checkout v0.2.1-experimental
+git checkout v0.2.2-experimental
 go install github.com/googleapis/gapic-generator-go/cmd/protoc-gen-go_gapic
-go install github.com/googleapis/gapic-generator-go/cmd/protoc-gen-gcli
+go install github.com/googleapis/gapic-generator-go/cmd/protoc-gen-go_cli
 popd
 
 mkdir -p generated
@@ -43,10 +43,10 @@ protoc protos/kiosk.proto \
   --descriptor_set_out=generated/kiosk_descriptor.pb \
   --go_out=plugins=grpc:$GOPATH/src \
   --go_gapic_out $GOPATH/src/ \
-  --go_gapic_opt 'github.com/googleapis/kiosk/gapic;gapic' \
-  --gcli_out kctl/ \
-  --gcli_opt "gapic=github.com/googleapis/kiosk/gapic" \
-  --gcli_opt "root=kctl"
+  --go_gapic_opt 'go-gapic-package=github.com/googleapis/kiosk/gapic;gapic' \
+  --go_cli_out kctl/ \
+  --go_cli_opt "gapic=github.com/googleapis/kiosk/gapic" \
+  --go_cli_opt "root=kctl"
 
 protoc endpoints/kiosk_with_http.proto \
   -I protos/api-common-protos \
