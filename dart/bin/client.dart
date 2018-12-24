@@ -17,7 +17,6 @@
 import 'dart:async';
 
 import 'package:grpc/grpc.dart';
-
 import 'package:kiosk/src/generated/kiosk.pb.dart';
 import 'package:kiosk/src/generated/kiosk.pbgrpc.dart';
 
