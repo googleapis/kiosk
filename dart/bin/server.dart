@@ -33,7 +33,7 @@ enum Command {
   delete_sign,
   set_sign_id_for_kiosk_ids,
   get_sign_id_for_kiosk_id,
-  get_sign_ids_for_kiosk_ids
+  get_sign_ids_for_kiosk_id
 }
 
 // Manage all service data in an in-memory data store.
@@ -42,6 +42,7 @@ void manage(SendPort listener) async {
   // initialize in-memory data store
   var kiosks = <int, Kiosk>{};
   var signs = <int, Sign>{};
+  var signIdsForKioskIds = <int, int>{};
   var nextKioskId = 1;
   var nextSignId = 1;
 
@@ -84,6 +85,59 @@ void manage(SendPort listener) async {
         // reply with the Empty() message
         replyTo.send(Empty());
         break;
+      case Command.create_sign:
+        // assign an id and save the sign.
+        var sign = data;
+        sign.id = nextSignId++;
+        signs[sign.id] = sign;
+        // reply with the new Sign.
+        replyTo.send(sign);
+        break;
+      case Command.list_signs:
+        // reply with a list of all signs.
+        replyTo.send(signs.values.toList());
+        break;
+      case Command.get_sign:
+        // lookup the sign.
+        var sign = signs[data.id];
+        // reply with the requested sign or null.
+        replyTo.send(sign);
+        break;
+      case Command.delete_sign:
+        // delete the sign.
+        signs.remove(data.id);
+        if (signs.isEmpty) {
+          nextSignId = 1;
+        }
+        // reply with the Empty() message
+        replyTo.send(Empty());
+        break;
+      case Command.set_sign_id_for_kiosk_ids:
+        var kioskIds = data[0];
+        var signId = data[1];
+        if (kioskIds.isEmpty) {
+          for (var kioskID = 1; kioskID < nextKioskId; kioskID++) {
+            signIdsForKioskIds[kioskID] = signId;
+          }
+        } else {
+          for (var kioskId in kioskIds) {
+            signIdsForKioskIds[kioskId] = signId;
+          }
+        }
+        print('$signIdsForKioskIds');
+        // reply with the Empty() message
+        replyTo.send(Empty());
+        break;
+      case Command.get_sign_id_for_kiosk_id:
+        var reply = GetSignIdResponse();
+		var signId = signIdsForKioskIds[data.kioskId];
+        if (signId != null) {
+			reply.signId = signId;		
+		}
+        replyTo.send(reply);
+        break;
+      case Command.get_sign_ids_for_kiosk_id:
+        break;
       default:
         replyTo.send(data);
     }
@@ -93,7 +147,7 @@ void manage(SendPort listener) async {
 /// sends a message on a port, receives the response,
 /// and returns the message that was received
 Future sendReceive(SendPort port, command, msg) {
-  ReceivePort response = new ReceivePort();
+  var response = new ReceivePort();
   port.send([command, msg, response.sendPort]);
   return response.first;
 }
@@ -136,54 +190,62 @@ class DisplayService extends DisplayServiceBase {
   }
 
   createSign(call, request) async {
-    var msg =
-        await sendReceive(dataManagerSendPort, Command.create_sign, request);
-    var completer = new Completer<Sign>();
-    completer.complete(new Sign());
-    return completer.future;
+    // FIXME: This should be a direct return (no "then"),
+    // but sendReceive() returns Future<dynamic> and we need FutureOr<Sign>.
+    return sendReceive(dataManagerSendPort, Command.create_sign, request)
+        .then((msg) {
+      return msg;
+    });
   }
 
   listSigns(call, request) async {
-    var msg =
-        await sendReceive(dataManagerSendPort, Command.list_signs, request);
-    var completer = new Completer<ListSignsResponse>();
-    completer.complete(new ListSignsResponse());
-    return completer.future;
+    return sendReceive(dataManagerSendPort, Command.list_signs, request)
+        .then((msg) {
+      return ListSignsResponse()..signs.addAll(msg);
+    });
   }
 
   getSign(call, request) async {
-    var msg = await sendReceive(dataManagerSendPort, Command.get_sign, request);
-    var completer = new Completer<Sign>();
-    completer.complete(new Sign());
-    return completer.future;
+    // FIXME: This should be a direct return.
+    return sendReceive(dataManagerSendPort, Command.get_sign, request)
+        .then((msg) {
+      return msg;
+    });
   }
 
   deleteSign(call, request) async {
-    var msg =
-        await sendReceive(dataManagerSendPort, Command.delete_sign, request);
-    var completer = new Completer<Empty>();
-    completer.complete(new Empty());
-    return completer.future;
+    // FIXME: This should be a direct return.
+    return sendReceive(dataManagerSendPort, Command.delete_sign, request)
+        .then((msg) {
+      return msg;
+    });
   }
 
   setSignIdForKioskIds(call, request) async {
-    var msg = await sendReceive(
-        dataManagerSendPort, Command.set_sign_id_for_kiosk_ids, request);
-    var completer = new Completer<Empty>();
-    completer.complete(new Empty());
-    return completer.future;
+    // It would be better to pass the request directly to the isolate,
+    // but we can't because of this: https://github.com/dart-lang/protobuf/issues/167
+    return sendReceive(dataManagerSendPort, Command.set_sign_id_for_kiosk_ids,
+        [request.kioskIds, request.signId]).then((msg) {
+      return Empty();
+    });
   }
 
   getSignIdForKioskId(call, request) async {
-    var msg = await sendReceive(
-        dataManagerSendPort, Command.get_sign_id_for_kiosk_id, request);
-    var completer = new Completer<GetSignIdResponse>();
-    completer.complete(new GetSignIdResponse());
-    return completer.future;
+    return sendReceive(
+            dataManagerSendPort, Command.get_sign_id_for_kiosk_id, request)
+        .then((msg) {
+      return msg;
+    });
   }
 
   getSignIdsForKioskId(call, request) async* {
-    yield new GetSignIdResponse();
+    var response = new ReceivePort();
+    dataManagerSendPort
+        .send([Command.get_sign_ids_for_kiosk_id, request, response.sendPort]);
+    await for (var value in response) {
+      print('$value');
+      yield GetSignIdResponse();
+    }
   }
 }
 
