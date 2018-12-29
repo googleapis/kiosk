@@ -36,6 +36,25 @@ enum Command {
   get_sign_ids_for_kiosk_id
 }
 
+void notify(List<SendPort> subs, int signId) {
+  // tell any subscribers about the update
+  var badPorts = List<SendPort>();
+  if (subs != null) {
+    for (var port in subs) {
+      var reply = GetSignIdResponse();
+      reply.signId = signId;
+      try {
+        port.send(reply);
+      } catch (e) {
+        badPorts.add(port);
+      }
+    }
+    for (var badPort in badPorts) {
+      subs.remove(badPort);
+    }
+  }
+}
+
 // Manage all service data in an in-memory data store.
 // Runs in a separate thread.
 void manage(SendPort listener) async {
@@ -45,6 +64,7 @@ void manage(SendPort listener) async {
   var signIdsForKioskIds = <int, int>{};
   var nextKioskId = 1;
   var nextSignId = 1;
+  var subscribers = <int, List<SendPort>>{};
 
   // create receive port and send it to the listener
   var port = new ReceivePort();
@@ -116,27 +136,38 @@ void manage(SendPort listener) async {
         var kioskIds = data[0];
         var signId = data[1];
         if (kioskIds.isEmpty) {
-          for (var kioskID = 1; kioskID < nextKioskId; kioskID++) {
-            signIdsForKioskIds[kioskID] = signId;
+          for (var kioskId = 1; kioskId < nextKioskId; kioskId++) {
+            signIdsForKioskIds[kioskId] = signId;
+            notify(subscribers[kioskId], signId);
           }
         } else {
           for (var kioskId in kioskIds) {
             signIdsForKioskIds[kioskId] = signId;
+            notify(subscribers[kioskId], signId);
           }
         }
-        print('$signIdsForKioskIds');
         // reply with the Empty() message
         replyTo.send(Empty());
         break;
       case Command.get_sign_id_for_kiosk_id:
         var reply = GetSignIdResponse();
-		var signId = signIdsForKioskIds[data.kioskId];
+        var signId = signIdsForKioskIds[data.kioskId];
         if (signId != null) {
-			reply.signId = signId;		
-		}
+          reply.signId = signId;
+        }
         replyTo.send(reply);
         break;
       case Command.get_sign_ids_for_kiosk_id:
+        if (subscribers[data.kioskId] == null) {
+          subscribers[data.kioskId] = List<SendPort>();
+        }
+        subscribers[data.kioskId].add(replyTo);
+        var reply = GetSignIdResponse();
+        var signId = signIdsForKioskIds[data.kioskId];
+        if (signId != null) {
+          reply.signId = signId;
+        }
+        replyTo.send(reply);
         break;
       default:
         replyTo.send(data);
@@ -243,9 +274,9 @@ class DisplayService extends DisplayServiceBase {
     dataManagerSendPort
         .send([Command.get_sign_ids_for_kiosk_id, request, response.sendPort]);
     await for (var value in response) {
-      print('$value');
-      yield GetSignIdResponse();
+      yield value;
     }
+	print('lost connection');
   }
 }
 
