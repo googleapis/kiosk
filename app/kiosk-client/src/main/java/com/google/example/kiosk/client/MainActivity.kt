@@ -26,7 +26,6 @@ import android.content.pm.PackageManager
 import android.databinding.DataBindingUtil
 import android.graphics.BitmapFactory
 import android.location.Location
-import android.os.AsyncTask
 import android.os.Bundle
 import android.support.v4.content.ContextCompat
 import android.support.v7.app.AppCompatActivity
@@ -43,7 +42,11 @@ import kiosk.DisplayClient
 import kiosk.ScreenSize
 import kiosk.Sign
 import kotlinx.android.synthetic.main.activity_main.*
-import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlin.coroutines.CoroutineContext
 
 private const val TAG = "Main"
 
@@ -53,7 +56,11 @@ private const val TAG = "Main"
  * The app for the phone will use this directly.
  * The Android Things version will subclass this to take advantage of the hardware.
  */
-open class MainActivity : AppCompatActivity() {
+open class MainActivity : AppCompatActivity(), CoroutineScope {
+
+    private lateinit var job: Job
+    override val coroutineContext: CoroutineContext
+        get() = Dispatchers.Main + job
 
     private lateinit var displayClient: DisplayClient
     private lateinit var locationClient: FusedLocationProviderClient
@@ -65,6 +72,8 @@ open class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        job = Job()
 
         // get preferences
         preferences = getSharedPreferences(PREFS_FILE_NAME, Context.MODE_PRIVATE)
@@ -79,7 +88,7 @@ open class MainActivity : AppCompatActivity() {
             .context(applicationContext)
             .usePlaintext()
             .build()
-        displayClient = DisplayClient.fromCredentials(channel = channel)
+        displayClient = DisplayClient.create(channel = channel)
 
         // wire up the UI
         val modelFactory = KioskViewModelFactory(application, displayClient)
@@ -103,7 +112,9 @@ open class MainActivity : AppCompatActivity() {
         })
 
         // reuse the name if this device has been previously registered
-        registerKiosk(preferences.getInt(PREF_KIOSK_ID, -1))
+        launch {
+            registerKiosk(preferences.getInt(PREF_KIOSK_ID, -1))
+        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -122,7 +133,7 @@ open class MainActivity : AppCompatActivity() {
             }
             R.id.action_reset_kiosk -> {
                 Log.i(TAG, "Resetting kiosk...")
-                registerKiosk()
+                launch { registerKiosk() }
             }
         }
         return super.onOptionsItemSelected(item)
@@ -133,20 +144,22 @@ open class MainActivity : AppCompatActivity() {
      *
      * If the [id] is less than 0 (default) then attempt to register as a new kiosk.
      */
-    protected fun registerKiosk(id: Int = -1) {
+    protected suspend fun registerKiosk(id: Int = -1) {
         // register this kiosk after getting the device location
         if (ContextCompat.checkSelfPermission(
                 applicationContext,
                 ACCESS_COARSE_LOCATION
             ) == PackageManager.PERMISSION_GRANTED
         ) {
-            locationClient.lastLocation.addOnSuccessListener { registerKiosk(id, it) }
+            locationClient.lastLocation.addOnSuccessListener {
+                launch { registerKiosk(id, it) }
+            }
         } else {
             registerKiosk(id, null)
         }
     }
 
-    private fun registerKiosk(id: Int, location: Location?) {
+    private suspend fun registerKiosk(id: Int, location: Location?) {
         if (id < 0) {
             // ensure no old id is left
             preferences.edit()
@@ -165,18 +178,19 @@ open class MainActivity : AppCompatActivity() {
                 longitude = location?.longitude ?: 0.0
             }
 
-            val name = NameGenerator.next()
-            model.registerKiosk(name, latLng, screenSize) {
-                Log.i(TAG, "Registered kiosk as '${it.body.name}'")
+            // create the kiosk
+            val kiosk = model.registerKiosk(NameGenerator.next(), latLng, screenSize)
+            if (kiosk != null) {
+                Log.i(TAG, "Registered kiosk as '${kiosk.name}'")
 
                 // save id
                 preferences.edit()
-                    .putInt(PREF_KIOSK_ID, it.body.id)
+                    .putInt(PREF_KIOSK_ID, kiosk.id)
                     .apply()
 
                 // active the kiosk to show the active sign
-                kioskId = it.body.id
-                model.switchToKiosk(it.body.id)
+                kioskId = kiosk.id
+                model.switchToKiosk(kiosk.id)
             }
         } else {
             kioskId = id
@@ -189,12 +203,7 @@ open class MainActivity : AppCompatActivity() {
 
         // shutdown channel
         Log.d(TAG, "Shutting down client")
-        ShutdownTask(displayClient).execute()
-    }
-
-    private class ShutdownTask(private val client: DisplayClient) : AsyncTask<Unit, Unit, Unit>() {
-        override fun doInBackground(vararg args: Unit?) {
-            client.channel.shutdownNow().awaitTermination(5, TimeUnit.SECONDS)
-        }
+        job.cancel()
+        displayClient.shutdownChannel()
     }
 }

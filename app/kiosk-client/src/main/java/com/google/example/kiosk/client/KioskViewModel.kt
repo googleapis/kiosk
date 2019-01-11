@@ -21,15 +21,13 @@ import android.arch.lifecycle.AndroidViewModel
 import android.arch.lifecycle.MutableLiveData
 import android.arch.lifecycle.ViewModel
 import android.arch.lifecycle.ViewModelProvider
-import android.os.CountDownTimer
 import android.util.Log
 import android.view.View
 import android.widget.ImageView
-import com.google.common.base.Preconditions
-import com.google.kgax.grpc.CallResult
-import com.google.kgax.grpc.ServerStreamingCall
+import com.google.api.kgax.grpc.ServerStreamingCall
 import com.google.protobuf.Timestamp
 import com.google.type.LatLng
+import io.grpc.StatusRuntimeException
 import kiosk.DisplayClient
 import kiosk.GetKioskRequest
 import kiosk.GetSignIdForKioskIdRequest
@@ -38,6 +36,10 @@ import kiosk.GetSignRequest
 import kiosk.Kiosk
 import kiosk.ScreenSize
 import kiosk.Sign
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 private const val TAG = "KioskVM"
 
@@ -90,43 +92,43 @@ class KioskViewModel(
     /**
      * Register the device as a new kiosk with the given parameters.
      *
-     * [onComplete] is only called if the registration was successful
-     * and an error is shown if the operation fails.
+     * An error is shown if the operation fails and null is returned.
      */
-    fun registerKiosk(
+    suspend fun registerKiosk(
         kioskName: String,
         kioskLocation: LatLng,
-        screenSize: ScreenSize,
-        onComplete: (CallResult<Kiosk>) -> Unit
-    ) {
-        val now = System.currentTimeMillis()
+        screenSize: ScreenSize
+    ): Kiosk? {
+        Log.i(TAG, "Registering kiosk with name: $kioskName")
 
         // register the kiosk
-        Log.i(TAG, "Registering kiosk with name: $kioskName")
-        client.createKiosk(Kiosk {
-            name = kioskName
-            createTime = Timestamp {
-                seconds = now / 1_000
-                nanos = ((now % 1_000) * 1_000_000).toInt()
-            }
-            size = screenSize
-            location = kioskLocation
-        }).onUI {
-            success = onComplete
-            error = {
-                Log.e(TAG, "failed to register kiosk", it)
+        val now = System.currentTimeMillis()
+        try {
+            return client.createKiosk(Kiosk {
+                name = kioskName
+                createTime = Timestamp {
+                    seconds = now / 1_000
+                    nanos = ((now % 1_000) * 1_000_000).toInt()
+                }
+                size = screenSize
+                location = kioskLocation
+            }).body
+        } catch (ex: StatusRuntimeException) {
+            Log.e(TAG, "failed to register kiosk", ex)
 
-                errorMessage.postValue(app.getString(R.string.error_kiosk_registration))
-                errorStacktrace.postValue(it.localizedMessage ?: it.toString())
-            }
+            errorMessage.postValue(app.getString(R.string.error_kiosk_registration))
+            errorStacktrace.postValue(ex.localizedMessage ?: ex.toString())
         }
+
+        // registration failed
+        return null
     }
 
     /**
      * Switch to the kiosk with [newId] and display the active sign.
      */
     @Synchronized
-    fun switchToKiosk(newId: Int) {
+    suspend fun switchToKiosk(newId: Int) {
         kioskId = newId
 
         // wait if a reconnect is pending
@@ -145,22 +147,20 @@ class KioskViewModel(
         stop()
 
         // switch
-        client.getKiosk(GetKioskRequest {
-            id = newId
-        }).onUI {
-            success = {
-                kiosk.postValue(it.body)
-                subscribeToSigns(it.body)
-            }
-            error = {
-                Log.e(TAG, "Unable to fetch kiosk: $newId", it)
+        try {
+            val response = client.getKiosk(GetKioskRequest {
+                id = newId
+            })
 
-                errorMessage.postValue(app.getString(R.string.error_kiosk_update))
-                errorStacktrace.postValue(it.localizedMessage ?: it.toString())
+            kiosk.postValue(response.body)
+            subscribeToSigns(response.body)
+        } catch (ex: StatusRuntimeException) {
+            Log.e(TAG, "Unable to fetch kiosk: $newId", ex)
 
-                reconnect(RETRY_INTERVAL)
-            }
-            ignoreIf = { newId != kioskId }
+            errorMessage.postValue(app.getString(R.string.error_kiosk_update))
+            errorStacktrace.postValue(ex.localizedMessage ?: ex.toString())
+
+            reconnect(RETRY_INTERVAL)
         }
     }
 
@@ -173,7 +173,7 @@ class KioskViewModel(
         // shutdown the stream
         val oldStream = signSubscription
         signSubscription = null
-        oldStream?.responses?.close()
+        oldStream?.responses?.cancel()
 
         Log.d(TAG, "Stopped kiosk subscription.")
     }
@@ -188,85 +188,79 @@ class KioskViewModel(
         scaleType.postValue(newType)
     }
 
-    private fun subscribeToSigns(k: Kiosk) {
-        Log.i(TAG, "Subscribing to kiosk sign updates for kiosk: ${k.id}")
+    private suspend fun subscribeToSigns(kiosk: Kiosk) = coroutineScope {
+        Log.i(TAG, "Subscribing to kiosk sign updates for kiosk: ${kiosk.id}")
 
         // start the subscription
         val stream = client.getSignIdsForKioskId(GetSignIdForKioskIdRequest {
-            kioskId = k.id
+            kioskId = kiosk.id
         })
         signSubscription = stream
 
         // process the responses
-        stream.start {
-            executor = MainThreadExecutor
-            onNext = {
-                Log.i(TAG, "Received updated sign: ${it.signId} from kiosk: ${k.id}")
+        launch(Dispatchers.IO) {
+            try {
+                for (response in stream.responses) {
+                    Log.i(TAG, "Received updated sign: ${response.signId} from kiosk: ${kiosk.id}")
 
-                // reset state
-                connected.postValue(true)
-                errorMessage.postValue(null)
-                errorStacktrace.postValue(null)
+                    // reset state
+                    connected.postValue(true)
+                    errorMessage.postValue(null)
+                    errorStacktrace.postValue(null)
 
-                fetchSign(it.signId, stream)
-            }
-            onCompleted = {
-                Log.i(TAG, "Subscription terminated for kiosk: ${k.id}")
+                    fetchSign(response.signId)
+                }
+
+                Log.i(TAG, "Subscription terminated for kiosk: ${kiosk.id}")
 
                 reconnect()
-            }
-            onError = {
-                Log.i(TAG, "Error watching for sign updates on kiosk: ${k.id}", it)
+            } catch (ex: StatusRuntimeException) {
+                Log.i(TAG, "Error watching for sign updates on kiosk: ${kiosk.id}", ex)
 
                 errorMessage.postValue(app.getString(R.string.error_kiosk_update))
-                errorStacktrace.postValue(it.localizedMessage ?: it.toString())
+                errorStacktrace.postValue(ex.localizedMessage ?: ex.toString())
 
                 reconnect(RETRY_INTERVAL)
             }
-            ignoreIf = { stream != signSubscription }
         }
     }
 
-    private fun fetchSign(signId: Int, stream: ServerStreamingCall<GetSignIdResponse>) {
+    private suspend fun fetchSign(signId: Int) {
         if (signId <= 0) {
             Log.i(TAG, "No sign has been assigned... skipping fetch.")
             return
         }
 
-        client.getSign(GetSignRequest {
-            id = signId
-        }).onUI {
-            success = {
-                Log.i(TAG, "Fetched sign with id: $signId")
+        try {
+            val response = client.getSign(GetSignRequest {
+                id = signId
+            })
+            Log.i(TAG, "Fetched sign with id: $signId")
 
-                // update sign body
-                if (it.body != sign.value) {
-                    sign.postValue(it.body)
-                    val position = if (it.body.image != null && !it.body.image.isEmpty) {
-                        TextPosition.BOTTOM
-                    } else {
-                        TextPosition.CENTER
-                    }
-                    textPosition.postValue(position)
+            // update sign body
+            if (response.body != sign.value) {
+                sign.postValue(response.body)
+                val position = if (response.body.image != null && !response.body.image.isEmpty) {
+                    TextPosition.BOTTOM
+                } else {
+                    TextPosition.CENTER
                 }
+                textPosition.postValue(position)
             }
-            error = {
-                Log.e(TAG, "Unable to getch sign: $signId")
+        } catch (ex: StatusRuntimeException) {
+            Log.e(TAG, "Unable to getch sign: $signId")
 
-                errorMessage.postValue(app.getString(R.string.error_kiosk_sign_update))
-                errorStacktrace.postValue(it.localizedMessage ?: it.toString())
+            errorMessage.postValue(app.getString(R.string.error_kiosk_sign_update))
+            errorStacktrace.postValue(ex.localizedMessage ?: ex.toString())
 
-                reconnect(RETRY_INTERVAL)
-            }
-            ignoreIf = { stream != signSubscription }
+            reconnect(RETRY_INTERVAL)
         }
     }
 
     // retry helper for when the connection is terminated
     @Synchronized
-    private fun reconnect(delay: Long = 0) {
-        Preconditions.checkState(!reconnectPending,
-                "Reconnection is pending. Illegal call to reconnect!")
+    private suspend fun reconnect(delayInMillis: Long = 0) = coroutineScope {
+        if (reconnectPending) return@coroutineScope
 
         Log.d(TAG, "Retrying (due to server disconnection or error)...")
 
@@ -275,24 +269,13 @@ class KioskViewModel(
 
         // attempt to reconnect
         reconnectPending = true
-        fun doConnect() {
-            try {
-                reconnectPending = false
-                kioskId?.let { switchToKiosk(it) }
-            } catch (ex: Exception) {
-                Log.d(TAG, "reconnect attempt failed", ex)
-            }
-        }
 
-        if (delay > 0) {
-            object : CountDownTimer(delay, delay) {
-                override fun onTick(millisUntilFinished: Long) {}
-                override fun onFinish() {
-                    doConnect()
-                }
-            }.start()
-        } else {
-            doConnect()
+        delay(delayInMillis)
+        try {
+            reconnectPending = false
+            kioskId?.let { switchToKiosk(it) }
+        } catch (ex: Throwable) {
+            Log.d(TAG, "reconnect attempt failed", ex)
         }
     }
 
@@ -301,20 +284,21 @@ class KioskViewModel(
 
         @JvmStatic
         fun showProgress(connected: Boolean?, errorMessage: String?) =
-                if (errorMessage == null &&
-                        connected != null && !connected) {
-                    View.VISIBLE
-                } else {
-                    View.GONE
-                }
+            if (errorMessage == null &&
+                connected != null && !connected
+            ) {
+                View.VISIBLE
+            } else {
+                View.GONE
+            }
 
         @JvmStatic
         fun showIfError(errorMessage: String?) =
-                if (errorMessage != null) {
-                    View.VISIBLE
-                } else {
-                    View.GONE
-                }
+            if (errorMessage != null) {
+                View.VISIBLE
+            } else {
+                View.GONE
+            }
 
         @JvmStatic
         @JvmOverloads
@@ -325,25 +309,27 @@ class KioskViewModel(
             condition: Boolean? = true,
             isText: Boolean = false
         ) =
-                if (connected != null && connected &&
-                        errorMessage == null &&
-                        sign != null &&
-                        condition != null && condition &&
-                        ((isText && sign.text?.length ?: 0 > 0) || (!isText))) {
-                    View.VISIBLE
-                } else {
-                    View.GONE
-                }
+            if (connected != null && connected &&
+                errorMessage == null &&
+                sign != null &&
+                condition != null && condition &&
+                ((isText && sign.text?.length ?: 0 > 0) || (!isText))
+            ) {
+                View.VISIBLE
+            } else {
+                View.GONE
+            }
 
         @JvmStatic
         fun showNoSign(connected: Boolean?, errorMessage: String?, sign: Sign?) =
-                if (connected != null && connected &&
-                        errorMessage == null &&
-                        sign == null) {
-                    View.VISIBLE
-                } else {
-                    View.GONE
-                }
+            if (connected != null && connected &&
+                errorMessage == null &&
+                sign == null
+            ) {
+                View.VISIBLE
+            } else {
+                View.GONE
+            }
 
         @JvmStatic
         fun scaleType(type: ImageView.ScaleType?) = type ?: ImageView.ScaleType.CENTER_CROP
