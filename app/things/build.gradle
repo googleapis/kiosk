@@ -44,7 +44,7 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
     compileOnly 'com.google.android.things:androidthings:1.0'
-    implementation"org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    implementation"org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
 
     implementation 'com.github.androidthings.contrib-drivers:rainbowhat:647b5ed'
 

@@ -25,6 +25,7 @@ import kiosk.Sign
 import kotlin.properties.Delegates
 import com.google.android.things.update.UpdatePolicy
 import com.google.android.things.update.UpdateManager
+import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 
 
@@ -95,7 +96,7 @@ class MainActivityThings : MainActivity() {
             Log.i(TAG, "Resetting kiosk (reset button sequence)...")
 
             buttons.clearSequence()
-            registerKiosk()
+            launch { registerKiosk() }
         }
 
         // check for scale adjustment
@@ -149,5 +150,4 @@ private class ButtonState {
     }
 
     private data class ButtonEvent(val button: String, val time: Long)
-
 }
