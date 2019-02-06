@@ -17,7 +17,7 @@ syntax = "proto3";
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 import "google/type/latlng.proto";
-import "google/api/annotations.proto";
+import "google/api/client.proto";
 
 option java_multiple_files = true;
 option go_package = "github.com/googleapis/kiosk/generated;kiosk"; 
