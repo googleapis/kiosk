@@ -14,10 +14,10 @@
 # limitations under the License.
 
 if [ ! -d "protos/api-common-protos" ]; then
-  curl -L -O https://github.com/googleapis/api-common-protos/archive/input-contract.zip
-  unzip input-contract.zip
-  rm -f input-contract.zip
-  mv api-common-protos-input-contract protos/api-common-protos
+  curl -L -O https://github.com/googleapis/api-common-protos/archive/master.zip
+  unzip master.zip
+  rm -f master.zip
+  mv api-common-protos-master protos/api-common-protos
 fi
 
 go get github.com/golang/protobuf/protoc-gen-go
