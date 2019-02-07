@@ -26,7 +26,7 @@ go get google.golang.org/grpc
 go get github.com/googleapis/gapic-generator-go/cmd/protoc-gen-go_gapic
 pushd $(pwd)
 cd $GOPATH/src/github.com/googleapis/gapic-generator-go
-git checkout v0.2.2-experimental
+git checkout v0.4.0
 go install github.com/googleapis/gapic-generator-go/cmd/protoc-gen-go_gapic
 go install github.com/googleapis/gapic-generator-go/cmd/protoc-gen-go_cli
 popd
