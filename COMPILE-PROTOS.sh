@@ -14,10 +14,10 @@
 # limitations under the License.
 
 if [ ! -d "protos/api-common-protos" ]; then
-  curl -L -O https://github.com/googleapis/api-common-protos/archive/input-contract.zip
-  unzip input-contract.zip
-  rm -f input-contract.zip
-  mv api-common-protos-input-contract protos/api-common-protos
+  curl -L -O https://github.com/googleapis/api-common-protos/archive/master.zip
+  unzip master.zip
+  rm -f master.zip
+  mv api-common-protos-master protos/api-common-protos
 fi
 
 go get github.com/golang/protobuf/protoc-gen-go
@@ -26,7 +26,7 @@ go get google.golang.org/grpc
 go get github.com/googleapis/gapic-generator-go/cmd/protoc-gen-go_gapic
 pushd $(pwd)
 cd $GOPATH/src/github.com/googleapis/gapic-generator-go
-git checkout v0.2.2-experimental
+git checkout v0.4.0
 go install github.com/googleapis/gapic-generator-go/cmd/protoc-gen-go_gapic
 go install github.com/googleapis/gapic-generator-go/cmd/protoc-gen-go_cli
 popd
