@@ -14,4 +14,4 @@
  * limitations under the License.
  */
 
-include ':mobile', ':things', ':kiosk-client'
+include ':mobile', ':things', ':kiosk-client', ':tv'

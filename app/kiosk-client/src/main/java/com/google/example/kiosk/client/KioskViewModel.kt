@@ -25,17 +25,18 @@ import android.util.Log
 import android.view.View
 import android.widget.ImageView
 import com.google.api.kgax.grpc.ServerStreamingCall
-import com.google.protobuf.Timestamp
+import com.google.protobuf.timestamp
 import com.google.type.LatLng
 import io.grpc.StatusRuntimeException
 import kiosk.DisplayClient
-import kiosk.GetKioskRequest
-import kiosk.GetSignIdForKioskIdRequest
 import kiosk.GetSignIdResponse
-import kiosk.GetSignRequest
 import kiosk.Kiosk
 import kiosk.ScreenSize
 import kiosk.Sign
+import kiosk.getKioskRequest
+import kiosk.getSignIdForKioskIdRequest
+import kiosk.getSignRequest
+import kiosk.kiosk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -104,9 +105,9 @@ class KioskViewModel(
         // register the kiosk
         val now = System.currentTimeMillis()
         try {
-            return client.createKiosk(Kiosk {
+            return client.createKiosk(kiosk {
                 name = kioskName
-                createTime = Timestamp {
+                createTime = timestamp {
                     seconds = now / 1_000
                     nanos = ((now % 1_000) * 1_000_000).toInt()
                 }
@@ -148,7 +149,7 @@ class KioskViewModel(
 
         // switch
         try {
-            val response = client.getKiosk(GetKioskRequest {
+            val response = client.getKiosk(getKioskRequest {
                 id = newId
             })
 
@@ -192,7 +193,7 @@ class KioskViewModel(
         Log.i(TAG, "Subscribing to kiosk sign updates for kiosk: ${kiosk.id}")
 
         // start the subscription
-        val stream = client.getSignIdsForKioskId(GetSignIdForKioskIdRequest {
+        val stream = client.getSignIdsForKioskId(getSignIdForKioskIdRequest {
             kioskId = kiosk.id
         })
         signSubscription = stream
@@ -232,7 +233,7 @@ class KioskViewModel(
         }
 
         try {
-            val response = client.getSign(GetSignRequest {
+            val response = client.getSign(getSignRequest {
                 id = signId
             })
             Log.i(TAG, "Fetched sign with id: $signId")
