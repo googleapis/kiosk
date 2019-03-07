@@ -36,11 +36,11 @@ import android.view.MenuItem
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.example.kiosk.client.databinding.ActivityMainBinding
-import com.google.type.LatLng
+import com.google.type.latLng
 import io.grpc.android.AndroidChannelBuilder
 import kiosk.DisplayClient
-import kiosk.ScreenSize
 import kiosk.Sign
+import kiosk.screenSize
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -144,7 +144,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope {
      *
      * If the [id] is less than 0 (default) then attempt to register as a new kiosk.
      */
-    protected suspend fun registerKiosk(id: Int = -1) {
+    protected fun registerKiosk(id: Int = -1) {
         // register this kiosk after getting the device location
         if (ContextCompat.checkSelfPermission(
                 applicationContext,
@@ -155,7 +155,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope {
                 launch { registerKiosk(id, it) }
             }
         } else {
-            registerKiosk(id, null)
+            launch { registerKiosk(id, null) }
         }
     }
 
@@ -169,11 +169,11 @@ open class MainActivity : AppCompatActivity(), CoroutineScope {
             // get more info about the device
             val displayMetrics = DisplayMetrics()
             windowManager.defaultDisplay.getMetrics(displayMetrics)
-            val screenSize = ScreenSize {
+            val screenSize = screenSize {
                 width = displayMetrics.widthPixels
                 height = displayMetrics.heightPixels
             }
-            val latLng = LatLng {
+            val latLng = latLng {
                 latitude = location?.latitude ?: 0.0
                 longitude = location?.longitude ?: 0.0
             }
