@@ -15,6 +15,7 @@
 syntax = "proto3";
 
 import "google/api/client.proto";
+import "google/api/annotations.proto";
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 import "google/type/latlng.proto";
@@ -28,34 +29,54 @@ service Display {
   option (google.api.default_host) = "localhost";
 
   // Create a kiosk. This enrolls the kiosk for sign display.
-  rpc CreateKiosk(Kiosk) returns (Kiosk) {}
+  rpc CreateKiosk(Kiosk) returns (Kiosk) {
+      option (google.api.http) = { post: "/v1/kiosks" };
+  }
 
   // List active kiosks.
-  rpc ListKiosks(google.protobuf.Empty) returns (ListKiosksResponse) {}
+  rpc ListKiosks(google.protobuf.Empty) returns (ListKiosksResponse) {
+      option (google.api.http) = { get: "/v1/kiosks" };
+  }
 
   // Get a kiosk.
-  rpc GetKiosk(GetKioskRequest) returns (Kiosk) {}
+  rpc GetKiosk(GetKioskRequest) returns (Kiosk) {
+      option (google.api.http) = { get: "/v1/kiosks/{id}" };
+  }
 
   // Delete a kiosk.
-  rpc DeleteKiosk(DeleteKioskRequest) returns (google.protobuf.Empty) {}
+  rpc DeleteKiosk(DeleteKioskRequest) returns (google.protobuf.Empty) {
+      option (google.api.http) = { delete: "/v1/kiosks/{id}" };
+  }
 
   // Create a sign. This enrolls the sign for sign display.
-  rpc CreateSign(Sign) returns (Sign) {}
+  rpc CreateSign(Sign) returns (Sign) {
+      option (google.api.http) = { post: "/v1/signs" };
+  }
 
   // List active signs.
-  rpc ListSigns(google.protobuf.Empty) returns (ListSignsResponse) {}
+  rpc ListSigns(google.protobuf.Empty) returns (ListSignsResponse) {
+      option (google.api.http) = { get: "/v1/signs" };
+  }
 
   // Get a sign.
-  rpc GetSign(GetSignRequest) returns (Sign) {}
+  rpc GetSign(GetSignRequest) returns (Sign) {
+      option (google.api.http) = { get: "/v1/signs/{id}" };
+  }
 
   // Delete a sign.
-  rpc DeleteSign(DeleteSignRequest) returns (google.protobuf.Empty) {}
+  rpc DeleteSign(DeleteSignRequest) returns (google.protobuf.Empty) {
+      option (google.api.http) = { delete: "/v1/signs/{id}" };
+  }
 
   // Set a sign for display on one or more kiosks.
-  rpc SetSignIdForKioskIds(SetSignIdForKioskIdsRequest) returns (google.protobuf.Empty) {}
+  rpc SetSignIdForKioskIds(SetSignIdForKioskIdsRequest) returns (google.protobuf.Empty) {
+      option (google.api.http) = { post: "/v1/signs/{sign_id}" };
+  }
 
   // Get the sign that should be displayed on a kiosk.
-  rpc GetSignIdForKioskId(GetSignIdForKioskIdRequest) returns (GetSignIdResponse) {}
+  rpc GetSignIdForKioskId(GetSignIdForKioskIdRequest) returns (GetSignIdResponse) {
+      option (google.api.http) = { get: "/v1/kiosks/{kiosk_id}/sign" };
+  }
 
   // Get signs that should be displayed on a kiosk. Streams.
   rpc GetSignIdsForKioskId(GetSignIdForKioskIdRequest) returns (stream GetSignIdResponse) {}

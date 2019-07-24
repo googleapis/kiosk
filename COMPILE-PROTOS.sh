@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # Copyright 2018 Google LLC. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,8 +24,7 @@ go get github.com/golang/protobuf/protoc-gen-go
 go get google.golang.org/grpc
 
 go get github.com/googleapis/gapic-generator-go/cmd/protoc-gen-go_gapic
-pushd $(pwd)
-cd $GOPATH/src/github.com/googleapis/gapic-generator-go
+pushd $GOPATH/src/github.com/googleapis/gapic-generator-go
 git checkout v0.4.0
 go install github.com/googleapis/gapic-generator-go/cmd/protoc-gen-go_gapic
 go install github.com/googleapis/gapic-generator-go/cmd/protoc-gen-go_cli
