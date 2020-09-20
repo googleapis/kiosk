@@ -5,6 +5,7 @@ branchProtectionRules:
 - pattern: master
   isAdminEnforced: true
   requiredStatusCheckContexts:
+    - 'header-check'
     - 'cla/google'
   requiredApprovingReviewCount: 1
   requiresCodeOwnerReviews: true
