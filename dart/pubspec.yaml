@@ -10,7 +10,7 @@ dependencies:
   async: '>=1.13.3 <3.0.0'
   grpc:
     path: ./third_party/grpc-dart
-  protobuf: ^0.10.1
+  protobuf: ^1.0.0
 
 dev_dependencies:
   test: ^1.3.0
