@@ -22,7 +22,7 @@ let package = Package(
   dependencies: [
     .package(url: "https://github.com/apple/swift-protobuf.git", from: "1.1.1"),
     .package(url: "https://github.com/kylef/Commander.git", from: "0.9.2"),
-    .package(url: "https://github.com/grpc/grpc-swift.git", from: "0.6.0"),
+    .package(url: "https://github.com/grpc/grpc-swift.git", from: "1.3.0"),
   ],
   targets: [
     .target(name: "kiosk-tool-swift",
