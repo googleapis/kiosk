@@ -21,7 +21,7 @@ import (
 	"time"
 
 	google_protobuf "github.com/golang/protobuf/ptypes/empty"
-	pb "github.com/googleapis/kiosk/generated"
+	pb "github.com/googleapis/kiosk/rpc"
 	context "golang.org/x/net/context"
 )
 
@@ -35,6 +35,8 @@ type DisplayServer struct {
 	nextKioskId        int32
 	nextSignId         int32
 	mux                sync.Mutex
+
+	pb.UnimplementedDisplayServer
 }
 
 // NewDisplayServer creates and returns a new DisplayServer.

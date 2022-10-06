@@ -4,8 +4,8 @@ This directory contains sample images that can be used to create signs.
 
 ## Credits
 
-Here are source links for the images in this directory. 
-Images are resized to reduce bandwidth.
+Here are source links for the images in this directory. Images are resized to
+reduce bandwidth.
 
 - [adorable-animal-cat-20787.jpg](https://www.pexels.com/photo/cat-whiskers-kitty-tabby-20787/)
 - [animal-canine-close-up-733416.jpg](https://www.pexels.com/photo/close-up-photography-of-adult-black-and-white-short-coat-dog-733416/)

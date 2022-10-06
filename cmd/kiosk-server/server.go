@@ -18,7 +18,7 @@ import (
 	"log"
 	"net"
 
-	pb "github.com/googleapis/kiosk/generated"
+	pb "github.com/googleapis/kiosk/rpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )

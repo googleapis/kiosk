@@ -31,7 +31,7 @@ import (
 	"github.com/docopt/docopt-go"
 
 	"github.com/googleapis/kiosk/gapic"
-	pb "github.com/googleapis/kiosk/generated"
+	pb "github.com/googleapis/kiosk/rpc"
 )
 
 const (

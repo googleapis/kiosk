@@ -26,7 +26,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	pb "github.com/googleapis/kiosk/generated"
+	pb "github.com/googleapis/kiosk/rpc"
 	"google.golang.org/grpc"
 )
 

@@ -19,7 +19,8 @@ Authorization tokens obtained with OAuth can be specified with the
 ## Sample
 
 Here's an example using the `k` tool to interact with a Kiosk server running on
-`localhost`. Note that commands are echoed by the `k` tool as they are executed.
+`localhost`. Note that commands are echoed by the `k` tool as they are
+executed.
 
 ```
 $ k list kiosks
