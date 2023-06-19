@@ -81,7 +81,7 @@ dependencies {
 
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version"
     testImplementation 'com.nhaarman:mockito-kotlin:1.6.0'
-    testImplementation "com.google.truth:truth:0.42"
+    testImplementation "com.google.truth:truth:0.46"
     testImplementation "android.arch.core:core-testing:$lifecycle_version"
 
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
