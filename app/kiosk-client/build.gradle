@@ -76,7 +76,7 @@ dependencies {
     api "android.arch.lifecycle:extensions:$lifecycle_version"
 
     api 'com.github.googleapis.gax-kotlin:kgax-grpc-android:v0.3.0'
-    compileOnly 'com.github.googleapis:gapic-generator-kotlin:v0.3.1'
+    compileOnly 'com.github.googleapis:gapic-generator-kotlin:0.6.0'
     api 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.1.0'
 
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version"
