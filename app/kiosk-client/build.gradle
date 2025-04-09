@@ -77,7 +77,7 @@ dependencies {
 
     api 'com.github.googleapis.gax-kotlin:kgax-grpc-android:v0.3.0'
     compileOnly 'com.github.googleapis:gapic-generator-kotlin:v0.3.1'
-    api 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.1.0'
+    api 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2'
 
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version"
     testImplementation 'com.nhaarman:mockito-kotlin:1.6.0'
